@@ -1,0 +1,3391 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trading Village Academy</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+     <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Babel для поддержки JSX в браузере -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
+      
+      body {
+        background-color: #0b0f1a;
+        font-family: 'Courier Prime', monospace; /* Pixel style font */
+      }
+
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar { width: 8px; }
+      ::-webkit-scrollbar-track { background: #0b0f1a; }
+      ::-webkit-scrollbar-thumb { background: #2a3441; border-radius: 4px; }
+      ::-webkit-scrollbar-thumb:hover { background: #3b4a5c; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    
+    <!-- Изменен тип скрипта для работы Babel -->
+    <script type="text/babel" data-type="module">
+        import React, { useState, useEffect, useMemo, useCallback } from 'https://esm.sh/react@18.2.0';
+        import ReactDOM from 'https://esm.sh/react-dom@18.2.0/client';
+        import { 
+  Trophy, Activity, Moon, BookOpen, TrendingUp, Target, Home, User, 
+  ChevronRight, CheckSquare, X, Map as MapIcon, BarChart2, Gem, 
+  Pocket, Shield, Zap, Star, Calendar, MessageCircle, FileText,
+  Crown, CreditCard, ShoppingBag, Lock
+} from 'https://esm.sh/lucide-react@0.263.1';
+
+        // --- GAME DATA & CONFIGURATION ---
+
+        const LOCATIONS = [
+  {
+    id: 'sleep_house',
+    name: 'Сон и Режим',
+    tvaName: 'Баня Восстановления',
+    description: 'Отдых — фундамент ясного ума.',
+    icon: Moon,
+    color: 'text-indigo-400',
+    category: 'sleep',
+    defaultTasks: [
+      { title: 'Режим сна', description: 'Лечь спать вовремя', category: 'sleep', exp: 20, value: 1, unit: 'check' },
+      { title: 'Ранняя пташка', description: 'Встать по будильнику', category: 'sleep', exp: 20, value: 1, unit: 'check' },
+      { title: 'Без экрана перед сном', description: '30 минут без телефона/монитора перед сном', category: 'sleep', exp: 15, value: 30, unit: 'min' },
+      { title: 'Полный цикл сна', description: 'Не просыпаться ночью без причины', category: 'sleep', exp: 25, value: 1, unit: 'check' }
+    ]
+  },
+  {
+    id: 'training_ground',
+    name: 'Физическая Форма',
+    tvaName: 'Тренировочная Ферма',
+    description: 'Сильное тело держит сильный дух.',
+    icon: Activity,
+    color: 'text-emerald-400',
+    category: 'sport',
+    defaultTasks: [
+      { title: 'Тренировка', description: 'Выполнить дневную норму', category: 'sport', exp: 30, value: 20, unit: 'min' },
+      { title: 'Разминка', description: 'Растяжка перед торгами', category: 'sport', exp: 10, value: 5, unit: 'min' },
+      { title: 'Прогулка', description: 'Минимум 5 000 шагов', category: 'sport', exp: 20, value: 5000, unit: 'steps' },
+      { title: 'Глаза трейдера', description: 'Сделать гимнастику для глаз', category: 'sport', exp: 10, value: 1, unit: 'check' }
+    ]
+  },
+  {
+    id: 'chart_tower',
+    name: 'Анализ Рынка',
+    tvaName: 'Мэрия Графиков',
+    description: 'Понимай структуру рынка.',
+    icon: TrendingUp,
+    color: 'text-amber-400',
+    category: 'charts',
+    defaultTasks: [
+      { title: 'Утренний Анализ', description: 'Разобрать 2 инструмента', category: 'charts', exp: 25, value: 2, unit: 'charts' },
+      { title: 'Журнал Сделок', description: 'Обзор вчерашних трейдов', category: 'charts', exp: 15, value: 1, unit: 'session' },
+      { title: 'Скриншоты', description: 'Сделать скрины 3 сетапов в архив', category: 'charts', exp: 20, value: 3, unit: 'setups' },
+      { title: 'Ошибки дня', description: 'Отметить минимум одну ошибку в сделках', category: 'charts', exp: 15, value: 1, unit: 'check' }
+    ]
+  },
+  {
+    id: 'library',
+    name: 'Обучение',
+    tvaName: 'Великий Собор',
+    description: 'Знания — твое главное плечо.',
+    icon: BookOpen,
+    color: 'text-blue-400',
+    category: 'learning',
+    defaultTasks: [
+      { title: 'Чтение Книги', description: 'Читать литературу', category: 'learning', exp: 20, value: 10, unit: 'pages' },
+      { title: 'Обучающее Видео', description: 'Смотреть урок', category: 'learning', exp: 15, value: 1, unit: 'video' },
+      { title: 'Конспект', description: 'Сделать записи по материалу', category: 'learning', exp: 20, value: 1, unit: 'session' },
+      { title: 'Повтор', description: 'Повторить конспект прошлого дня', category: 'learning', exp: 15, value: 1, unit: 'session' }
+    ]
+  },
+  {
+    id: 'research_house',
+    name: 'Исследования',
+    tvaName: 'Хижина Старого Трейдера',
+    description: 'Ищи паттерны, строй планы.',
+    icon: Target,
+    color: 'text-red-400',
+    category: 'research',
+    defaultTasks: [
+      { title: 'Охота на Паттерны', description: 'Найти 3 сетапа на истории', category: 'research', exp: 40, value: 3, unit: 'setups' },
+      { title: 'Торговый План', description: 'Написать тезис для сделки', category: 'planning', exp: 30, value: 1, unit: 'plan' },
+      { title: 'Сценарии', description: 'Прописать 2 альтернативных сценария по рынку', category: 'research', exp: 25, value: 2, unit: 'scenario' },
+      { title: 'Чек-лист входа', description: 'Пройтись по чек-листу перед сделкой', category: 'planning', exp: 20, value: 1, unit: 'check' }
+    ]
+  }
+];
+
+
+        const UPGRADES = [
+          { locationId: 'sleep_house', name: 'Баня Восстановления', maxLevel: 3, steps: [
+            { level: 1, cost: 0, visual: '⛺', name: 'Ветхая Палатка' }, { level: 2, cost: 300, visual: '🏚️', name: 'Деревянный Дом' }, { level: 3, cost: 1200, visual: '👑', name: 'Королевские Покои' }
+          ] },
+          { locationId: 'training_ground', name: 'Тренировочная Ферма', maxLevel: 3, steps: [
+            { level: 1, cost: 0, visual: '🌿', name: 'Полевая Тренировка' }, { level: 2, cost: 400, visual: '🏋️', name: 'Спортивный Зал' }, { level: 3, cost: 1500, visual: '🏟️', name: 'Олимпийский Комплекс' }
+          ] },
+          { locationId: 'chart_tower', name: 'Мэрия Графиков', maxLevel: 3, steps: [
+            { level: 1, cost: 0, visual: '📜', name: 'Пергамент' }, { level: 2, cost: 500, visual: '📊', name: 'Монитор' }, { level: 3, cost: 2000, visual: '🛰️', name: 'Спутниковая Станция' }
+          ] },
+          { locationId: 'library', name: 'Великий Собор', maxLevel: 3, steps: [
+            { level: 1, cost: 0, visual: '📚', name: 'Маленькая Библиотека' }, { level: 2, cost: 600, visual: '🏛️', name: 'Городской Собор' }, { level: 3, cost: 2500, visual: '🔮', name: 'Секретная Коллекция' }
+          ] },
+          { locationId: 'research_house', name: 'Хижина Старого Трейдера', maxLevel: 3, steps: [
+            { level: 1, cost: 0, visual: '🧭', name: 'Старый Компас' }, { level: 2, cost: 700, visual: '🔬', name: 'Исследовательский Центр' }, { level: 3, cost: 3000, visual: '🚀', name: 'Лаборатория Будущего' }
+          ] }
+        ];
+
+        const ARTIFACTS_DATA = [
+            { baseId: 'charts_boost', name: 'Очки Аналитика', description: '+20% EXP за задачи Графиков', visual: '👓', effectType: 'exp_multiplier', effectValue: 1.2, targetCategory: 'charts', isEquippable: true, cost: 5000 },
+            { baseId: 'gold_magnet', name: 'Золотой Магнит', description: '+10% Золота за любую задачу', visual: '🧲', effectType: 'gold_multiplier', effectValue: 1.1, targetCategory: 'all', isEquippable: true, cost: 8000 },
+            { baseId: 'sleep_focus', name: 'Перо Сна', description: '+30% EXP за задачи Сна', visual: '🕊️', effectType: 'exp_multiplier', effectValue: 1.3, targetCategory: 'sleep', isEquippable: true, cost: 4000 },
+            { baseId: 'sport_haste', name: 'Ботинки Скорохода', description: '+25% EXP за задачи Спорта', visual: '👟', effectType: 'exp_multiplier', effectValue: 1.25, targetCategory: 'sport', isEquippable: true, cost: 4500 },
+            { baseId: 'research_wisdom', name: 'Свиток Мудрости', description: '+15% EXP за Исследования', visual: '📜', effectType: 'exp_multiplier', effectValue: 1.15, targetCategory: 'research', isEquippable: true, cost: 6000 },
+            { baseId: 'learning_book', name: 'Фолиант Знаний', description: '+20% EXP за Обучение', visual: '📖', effectType: 'exp_multiplier', effectValue: 1.2, targetCategory: 'learning', isEquippable: true, cost: 5500 },
+        ];
+
+        const TALENTS_DATA = [
+            { id: 'focus_1', name: 'Первоначальный Фокус', description: '+5% к базовому EXP', cost: 500, maxLevel: 3, effect: 'exp_boost', baseValue: 0.05, prereqTalentId: null },
+            { id: 'gold_finder_1', name: 'Золотая Жила', description: '+10% к Золоту за задачи', cost: 1000, maxLevel: 3, effect: 'gold_boost', baseValue: 0.1, prereqTalentId: 'focus_1' },
+            { id: 'discipline_mastery', name: 'Мастер Дисциплины', description: 'Увеличивает ежедневный лимит задач', cost: 2000, maxLevel: 1, effect: 'extra_task_slot', baseValue: 1, prereqTalentId: 'gold_finder_1' },
+            { id: 'advanced_focus', name: 'Продвинутый Фокус', description: '+10% к базовому EXP', cost: 1500, maxLevel: 2, effect: 'exp_boost', baseValue: 0.10, prereqTalentId: 'focus_1' },
+            {
+    id: 'more_tasks_ii',
+    name: 'Гильдия Задач II',
+    description: 'Ещё больше слотов задач для самых упорных трейдеров.',
+    cost: 3,
+    maxLevel: 2,
+    effect: 'extra_task_slot',
+    baseValue: 1,       // +1 слот за уровень (ИТОГО до +2)
+    prereqId: null,     // при желании можно привязать к уже существующему таланту
+  },
+  {
+    id: 'more_tasks_iii',
+    name: 'Гильдия Задач III',
+    description: 'Элита TVA получает максимум доступных задач в день.',
+    cost: 5,
+    maxLevel: 1,
+    effect: 'extra_task_slot',
+    baseValue: 2,       // +2 слота на 1 уровне
+    prereqId: 'more_tasks_ii', // откроется после прокачки II (если логика prereq есть)
+  },
+
+  {
+    id: 'gold_mentor_i',
+    name: 'Монеты Мастера I',
+    description: 'Небольшой постоянный бонус к золоту за выполнение задач.',
+    cost: 2,
+    maxLevel: 3,
+    effect: 'gold_boost',
+    baseValue: 0.05,    // +5% золота за уровень (до +15%)
+    prereqId: null,
+  },
+  {
+    id: 'gold_mentor_ii',
+    name: 'Монеты Мастера II',
+    description: 'Сильный рост золота для тех, кто не пропускает дни.',
+    cost: 4,
+    maxLevel: 2,
+    effect: 'gold_boost',
+    baseValue: 0.10,    // +10% за уровень (до +20%)
+    prereqId: 'gold_mentor_i',
+  },
+
+  {
+    id: 'exp_streak_i',
+    name: 'Путь Ученичества',
+    description: 'Каждый день с задачами приносит чуть больше опыта.',
+    cost: 2,
+    maxLevel: 3,
+    effect: 'exp_boost',
+    baseValue: 0.05,    // +5% EXP за уровень
+    prereqId: null,
+  },
+  {
+    id: 'exp_streak_ii',
+    name: 'Путь Мастера',
+    description: 'Для тех, кто держит серию выполненных дней без срывов.',
+    cost: 4,
+    maxLevel: 2,
+    effect: 'exp_boost',
+    baseValue: 0.10,    // +10% EXP за уровень
+    prereqId: 'exp_streak_i',
+  },
+
+  {
+    id: 'artifact_master_i',
+    name: 'Мастер Артефактов I',
+    description: 'Позволяет экипировать ещё один артефакт.',
+    cost: 3,
+    maxLevel: 1,
+    effect: 'extra_equip_slot',
+    baseValue: 1,       // +1 слот экипировки
+    prereqId: null,
+  },
+  {
+    id: 'artifact_master_ii',
+    name: 'Мастер Артефактов II',
+    description: 'Ещё один дополнительный слот для артефакта.',
+    cost: 5,
+    maxLevel: 1,
+    effect: 'extra_equip_slot',
+    baseValue: 1,       // ещё +1 слот
+    prereqId: 'artifact_master_i',
+  },
+        ];
+
+        const INITIAL_PLAYER_STATE = {
+  level: 1,
+  currentExp: 0,
+  expToNextLevel: 100,
+  totalExp: 0,
+  streakDays: 0,
+  lastLoginDate: new Date().toISOString().split('T')[0],
+  gold: 10000, 
+  equippedArtifactIds: [], 
+  unlockedTalents: {},
+  buildingTaskSlots: 0,
+
+  // 🔥 Premium / подписки
+  hasPremiumPass: false,        // активирован ли Premium Pass
+  subscriptionTier: null,       // 'basic' | 'advanced' | 'pro' (на будущее)
+};
+
+        const MOTIVATION_QUOTES = [
+  "Каждый маленький шаг делает тебя сильнее, чем ты был вчера.",
+  "Торговля начинается с дисциплины. Дисциплина начинается с одного действия.",
+  "Ты строишь не просто навыки — ты строишь свой будущий капитал.",
+  "Деревня растёт вместе с тобой. Продолжай движение.",
+  "Лучшие трейдеры — это те, кто не останавливается.",
+  "Сегодняшняя маленькая победа — завтрашний большой результат.",
+  "Сильная рутина создаёт сильного трейдера.",
+  "Пока другие спят — ты создаёшь легенду.",
+  "Шаг за шагом. День за днём. Так и рождаются мастера.",
+  "Формируешь привычки — формируешь результат."
+];
+
+// 🔥 Наставники TVA
+const TVA_MENTORS = {
+  trader: {
+    name: "Старый Трейдер",
+    emoji: "🧙‍♂️",
+    quotes: [
+      "Ты не контролируешь рынок — но ты контролируешь свои действия.",
+      "Лучший трейд — тот, который ты не открыл.",
+      "Запомни: дисциплина важнее прогноза.",
+      "Терпение платит больше любых стратегий.",
+    ]
+  },
+  monk: {
+    name: "Монах Спокойствия",
+    emoji: "🙏",
+    quotes: [
+      "Тот, кто победил себя — победил рынок.",
+      "Твоя импульсивность — твой главный враг.",
+      "Настоящий контроль — это умение не нажать кнопку.",
+      "Дыши. Рынок никуда не уйдёт.",
+    ]
+  },
+  grandpa: {
+    name: "Дед Аналитик",
+    emoji: "📈",
+    quotes: [
+      "Я видел такие рынки ещё до твоего рождения.",
+      "Если график растёт — не мешай ему.",
+      "Если падает — не усложняй.",
+      "Самая дорогая ошибка трейдера — переоценить самого себя.",
+    ]
+  }
+};
+
+function getRandomAdvice() {
+  const mentors = Object.values(TVA_MENTORS);
+  const mentor = mentors[Math.floor(Math.random() * mentors.length)];
+  const quote = mentor.quotes[Math.floor(Math.random() * mentor.quotes.length)];
+
+  return {
+    mentor: mentor.name,
+    emoji: mentor.emoji,
+    text: quote
+  };
+}
+
+        const INITIAL_UPGRADES_STATE = Object.fromEntries(
+            LOCATIONS.map(loc => [loc.id, 1])
+        );
+
+        // --- SERVICES ---
+
+        const STORAGE_KEYS = {
+          PROFILE: 'tva_profile',
+          PLAYER: 'tva_player',
+          TASKS: 'tva_tasks',
+          STATS: 'tva_stats',
+          UPGRADES: 'tva_upgrades',
+          ARTIFACTS: 'tva_artifacts',
+          CHALLENGE: 'tva_weekly_challenge',
+        };
+
+        const getSubscriptionBonuses = (tier) => {
+          switch (tier) {
+            case 'advanced':
+              return {
+                extraTaskSlots: 1,     // +1 слот задач
+                extraEquipSlots: 1,    // +1 слот артефакта
+                goldMultiplier: 1.1,   // +10% золота
+              };
+            case 'pro':
+              return {
+                extraTaskSlots: 2,     // +2 слота задач
+                extraEquipSlots: 2,    // +2 слота артефактов
+                goldMultiplier: 1.2,   // +20% золота
+              };
+            case 'basic':
+            default:
+              return {
+                extraTaskSlots: 0,
+                extraEquipSlots: 0,
+                goldMultiplier: 1.0,
+              };
+          }
+        };
+
+        const calculateMaxEquipSlots = (player) => {
+  const baseSlots = 3; // базовые слоты
+
+  const subBonuses = getSubscriptionBonuses(player.subscriptionTier || 'basic');
+  const fromSub = subBonuses.extraEquipSlots || 0;
+
+  const fromPremium = player.hasPremiumPass ? 1 : 0; // за Premium Pass ещё +1
+
+  // 🔥 бонусы от талантов "Мастер Артефактов"
+  const fromTalents = Object.entries(player.unlockedTalents || {}).reduce(
+    (total, [id, level]) => {
+      const talent = TALENTS_DATA.find(t => t.id === id);
+      if (talent && talent.effect === 'extra_equip_slot') {
+        return total + (talent.baseValue || 0) * level;
+      }
+      return total;
+    },
+    0
+  );
+
+  return baseSlots + fromSub + fromPremium + fromTalents;
+};
+
+        const getTodayString = () => new Date().toISOString().split('T')[0];
+
+        const getWeekId = (dateString) => {
+            const date = dateString ? new Date(dateString) : new Date();
+            const startOfWeek = new Date(date.setDate(date.getDate() - date.getDay()));
+            return startOfWeek.toISOString().split('T')[0];
+        };
+
+        const calculateLevel = (currentLevel, currentExp, expNeeded) => {
+          if (currentExp >= expNeeded) {
+            const overflow = currentExp - expNeeded;
+            const nextLevel = currentLevel + 1;
+            const nextNeeded = 100 + (nextLevel * 20);
+            return { newLevel: nextLevel, newExp: overflow, newNeeded: nextNeeded, leveledUp: true };
+          }
+          return { newLevel: currentLevel, newExp: currentExp, newNeeded: expNeeded, leveledUp: false };
+        };
+
+        const generateDailyTasks = (date, extraSlots) => {
+          let tasks = [];
+          LOCATIONS.forEach(loc => {
+            loc.defaultTasks.forEach((dt, idx) => {
+              tasks.push({
+                id: `${date}-${loc.id}-${idx}`,
+                ...dt,
+                completed: false,
+              });
+            });
+          });
+          for (let i = 0; i < extraSlots; i++) {
+            const bonusTask = { title: `Бонусная Дисциплина ${i+1}`, description: 'Дополнительное задание для роста', category: 'planning', exp: 10, value: 1, unit: 'check' };
+            tasks.push({ id: `${date}-bonus-${i}`, ...bonusTask, completed: false });
+          }
+          return tasks;
+        };
+
+        const generateWeeklyChallenge = (today) => {
+            const categories = ['sport', 'charts', 'learning', 'research'];
+            const randomCategory = categories[Math.floor(Math.random() * categories.length)];
+            const required = 10 + Math.floor(Math.random() * 5); 
+            const exp = required * 80;
+            const gold = required * 120;
+            
+            const categoryName = LOCATIONS.find(l => l.category === randomCategory)?.name || 'Категория';
+
+            return {
+                id: crypto.randomUUID(),
+                startDate: today,
+                title: `Испытание: Мастер ${categoryName}`,
+                description: `Выполни ${required} задач в категории "${categoryName}" за эту неделю, чтобы одолеть Босса!`,
+                targetCategory: randomCategory,
+                requiredCompletions: required,
+                currentProgress: 0,
+                expReward: exp,
+                goldReward: gold,
+                isCompleted: false,
+                isClaimed: false,
+            };
+        };
+
+        const generateRandomArtifact = () => {
+            const baseArtifact = ARTIFACTS_DATA[Math.floor(Math.random() * ARTIFACTS_DATA.length)];
+            return { ...baseArtifact, id: crypto.randomUUID() };
+        };
+
+        const getCurrentUpgrade = (locationId, currentLevel) => {
+            const upgradeSet = UPGRADES.find(u => u.locationId === locationId);
+            if (!upgradeSet) return null;
+            return upgradeSet.steps.find(s => s.level === currentLevel) || upgradeSet.steps[0];
+        };
+
+        const getNextUpgrade = (locationId, currentLevel) => {
+            const upgradeSet = UPGRADES.find(u => u.locationId === locationId);
+            if (!upgradeSet || currentLevel >= upgradeSet.maxLevel) return null;
+            return upgradeSet.steps.find(s => s.level === currentLevel + 1);
+        };
+
+        // --- SUB-COMPONENTS ---
+
+        const PixelCard = ({ children, className = "", onClick }) => (
+          <div 
+            onClick={onClick}
+            className={`
+              bg-[#151a25] border-2 border-[#2a3441] rounded-lg p-4 relative shadow-lg
+              hover:border-[#3b4a5c] transition-colors
+              ${onClick ? 'cursor-pointer active:scale-[0.98]' : ''}
+              ${className}
+            `}
+          >
+            {children}
+          </div>
+        );
+
+        const MotivationFooter = ({ viewKey }) => {
+  const [advice, setAdvice] = useState(() => getRandomAdvice());
+
+  useEffect(() => {
+    // каждый раз, когда viewKey меняется — берём новый совет
+    setAdvice(getRandomAdvice());
+  }, [viewKey]);
+
+  return (
+    <div className="text-center mt-10 mb-2 px-4 opacity-70">
+      <div className="text-[11px] text-gray-400 font-semibold">
+        {advice.emoji} {advice.mentor} говорит:
+      </div>
+      <div className="text-[10px] text-gray-500 mt-1 italic">
+        "{advice.text}"
+      </div>
+    </div>
+  );
+};
+
+
+
+        const Button = ({ children, onClick, variant = 'primary', className = "", disabled = false }) => {
+          const baseStyle = "px-4 py-2 font-bold uppercase tracking-wider text-xs sm:text-sm border-b-4 transition-all rounded";
+          const variants = {
+            primary: "bg-[#2563eb] border-[#1d4ed8] text-white hover:bg-[#3b82f6] active:border-b-0 active:translate-y-1 disabled:opacity-50 disabled:translate-y-0 disabled:border-b-4 disabled:cursor-not-allowed",
+            secondary: "bg-[#334155] border-[#1e293b] text-gray-200 hover:bg-[#475569] active:border-b-0 active:translate-y-1 disabled:opacity-50 disabled:translate-y-0 disabled:border-b-4 disabled:cursor-not-allowed",
+            accent: "bg-[#d97706] border-[#b45309] text-white hover:bg-[#f59e0b] active:border-b-0 active:translate-y-1 disabled:opacity-50 disabled:translate-y-0 disabled:border-b-4 disabled:cursor-not-allowed",
+            success: "bg-emerald-600 border-emerald-800 text-white hover:bg-emerald-500 active:border-b-0 active:translate-y-1 disabled:opacity-50 disabled:translate-y-0 disabled:border-b-4 disabled:cursor-not-allowed",
+          };
+          
+          return (
+            <button onClick={onClick} disabled={disabled} className={`${baseStyle} ${variants[variant]} ${className}`}>
+              {children}
+            </button>
+          );
+        };
+
+        const ProgressBar = ({ current, max, colorClass = "bg-yellow-500" }) => {
+          const percent = Math.min(100, (current / max) * 100);
+          return (
+            <div className="h-4 bg-gray-800 rounded-full overflow-hidden border border-gray-700 relative">
+              <div 
+                className={`h-full ${colorClass} transition-all duration-500 ease-out`}
+                style={{ width: `${percent}%` }}
+              />
+              <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white shadow-black drop-shadow-md">
+                {current} / {max} EXP
+              </span>
+            </div>
+          );
+        };
+
+        // Radar Chart
+const RadarChart = ({ data }) => {
+  // 🔹 Фолбэк, если данных нет или они пустые
+  const fallbackData = [
+    { label: 'Сон',      value: 0, fullMark: 20 },
+    { label: 'Спорт',    value: 0, fullMark: 20 },
+    { label: 'Графики',  value: 0, fullMark: 20 },
+    { label: 'Знания',   value: 0, fullMark: 20 },
+    { label: 'Стратегия',value: 0, fullMark: 20 },
+  ];
+
+  const chartData = (data && data.length > 0) ? data : fallbackData;
+
+  const size = 200;
+  const center = size / 2;
+  const radius = (size / 2) - 30;
+  const total = chartData.length;
+  const angleSlice = (Math.PI * 2) / total;
+
+  const getCoords = (value, index, max) => {
+    const r = (value / max) * radius;
+    const angle = index * angleSlice - Math.PI / 2;
+    return {
+      x: center + r * Math.cos(angle),
+      y: center + r * Math.sin(angle)
+    };
+  };
+
+  const levels = [0.2, 0.4, 0.6, 0.8, 1];
+
+  const points = chartData
+    .map((d, i) => {
+      const val = Math.min(d.value, d.fullMark);
+      const { x, y } = getCoords(val, i, d.fullMark);
+      return `${x},${y}`;
+    })
+    .join(' ');
+
+  return (
+    <div className="flex flex-col items-center">
+      <svg width={size} height={size} className="overflow-visible">
+        {/* Сеточная «паутинка» */}
+        {levels.map((level, lvlIdx) => (
+          <polygon
+            key={lvlIdx}
+            points={chartData.map((d, i) => {
+              const { x, y } = getCoords(d.fullMark * level, i, d.fullMark);
+              return `${x},${y}`;
+            }).join(' ')}
+            fill="none"
+            stroke="#2a3441"
+            strokeWidth="1"
+          />
+        ))}
+
+        {/* Радиальные линии */}
+        {chartData.map((d, i) => {
+          const { x, y } = getCoords(d.fullMark, i, d.fullMark);
+          return (
+            <line
+              key={i}
+              x1={center}
+              y1={center}
+              x2={x}
+              y2={y}
+              stroke="#2a3441"
+              strokeWidth="1"
+            />
+          );
+        })}
+
+        {/* Многоугольник прогресса */}
+        <polygon
+          points={points}
+          fill="rgba(234, 179, 8, 0.3)"
+          stroke="#eab308"
+          strokeWidth="2"
+        />
+
+        {/* Точки на вершинах */}
+        {chartData.map((d, i) => {
+          const val = Math.min(d.value, d.fullMark);
+          const { x, y } = getCoords(val, i, d.fullMark);
+          return <circle key={i} cx={x} cy={y} r="3" fill="#eab308" />;
+        })}
+
+        {/* Подписи осей */}
+        {chartData.map((d, i) => {
+          const labelRadius = radius + 15;
+          const angle = i * angleSlice - Math.PI / 2;
+          const x = center + labelRadius * Math.cos(angle);
+          const y = center + labelRadius * Math.sin(angle);
+
+          return (
+            <text
+              key={i}
+              x={x}
+              y={y}
+              textAnchor="middle"
+              dy="0.3em"
+              fill="#9ca3af"
+              className="text-[10px] uppercase font-bold"
+            >
+              {d.label}
+            </text>
+          );
+        })}
+      </svg>
+
+      {/* Если используется фолбэк — покажем подсказку */}
+      {(!data || data.length === 0) && (
+        <p className="text-[10px] text-gray-500 mt-2 text-center max-w-xs">
+          Пока нет данных по задачам — диаграмма показывает базовый шаблон.
+          Выполняй задачи, чтобы увидеть реальный прогресс.
+        </p>
+      )}
+    </div>
+  );
+};
+
+// === Колесо Баланса: оси и вопросы ===
+const BALANCE_DIMENSIONS = [
+  { id: 'discipline', label: 'Дисциплина' },
+  { id: 'energy',     label: 'Энергия' },
+  { id: 'focus',      label: 'Фокус' },
+  { id: 'emotions',   label: 'Эмоции' },
+  { id: 'finances',   label: 'Финансы' },
+];
+
+const BALANCE_QUESTIONS = [
+  { id: 'q1',  dimension: 'discipline', text: 'Я выполняю запланированные задачи даже когда нет мотивации.' },
+  { id: 'q2',  dimension: 'discipline', text: 'У меня есть понятный распорядок дня.' },
+  { id: 'q3',  dimension: 'energy',     text: 'Я чувствую себя бодро большую часть дня.' },
+  { id: 'q4',  dimension: 'energy',     text: 'Я слежу за сном и восстановлением.' },
+  { id: 'q5',  dimension: 'focus',      text: 'Мне легко сосредоточиться на одной задаче без отвлечений.' },
+  { id: 'q6',  dimension: 'focus',      text: 'Во время работы я редко проверяю соцсети и мессенджеры.' },
+  { id: 'q7',  dimension: 'emotions',   text: 'Я умею держать эмоции под контролем даже после сложного дня.' },
+  { id: 'q8',  dimension: 'emotions',   text: 'Просадки и ошибки не ломают мне день и самооценку.' },
+  { id: 'q9',  dimension: 'finances',   text: 'У меня есть базовый финансовый план или подушка безопасности.' },
+  { id: 'q10', dimension: 'finances',   text: 'Я понимаю, как связаны мои привычки и мой финансовый результат.' },
+];
+
+const BalanceTestView = ({ profile, onComplete, onBack }) => {
+  const [answers, setAnswers] = React.useState({});
+
+  const handleAnswer = (questionId, value) => {
+    setAnswers(prev => ({ ...prev, [questionId]: value }));
+  };
+
+  const allAnswered = BALANCE_QUESTIONS.every(q => answers[q.id]);
+
+  const handleSubmit = () => {
+    if (!allAnswered) return;
+
+    const totals = {};
+    const counts = {};
+
+    BALANCE_QUESTIONS.forEach(q => {
+      const v = answers[q.id];
+      if (!totals[q.dimension]) {
+        totals[q.dimension] = 0;
+        counts[q.dimension] = 0;
+      }
+      totals[q.dimension] += v;
+      counts[q.dimension] += 1;
+    });
+
+    const scores = {};
+    BALANCE_DIMENSIONS.forEach(dim => {
+      const sum = totals[dim.id] || 0;
+      const cnt = counts[dim.id] || 1;
+      const avg = sum / cnt; // 1–5
+      scores[dim.id] = Math.round((avg / 5) * 100); // 0–100
+    });
+
+    onComplete(scores);
+  };
+
+  return (
+    <div className="space-y-6 animate-in slide-in-from-right-8 duration-300">
+      <button
+        onClick={onBack}
+        className="text-xs text-gray-400 hover:text-white flex items-center gap-1 mb-2"
+      >
+        <Home size={12} /> ВЕРНУТЬСЯ В ДЕРЕВНЮ
+      </button>
+
+      <h2 className="text-xl font-bold text-white mb-2 border-b border-gray-800 pb-2">
+        Тест «Колесо Баланса»
+      </h2>
+
+      {/* Цитата о важности баланса */}
+<PixelCard
+  className="
+    bg-gray-900/40 border-gray-700/40 mb-2
+    animate-in fade-in slide-in-from-top-2 duration-500
+  "
+>
+  <p className="text-xs italic text-gray-300">
+    «Самое важное качество успешного человека — способность честно оценить своё состояние и улучшать слабые стороны.»
+  </p>
+  <p className="text-[10px] text-gray-500 mt-1">
+    — Рэй Далио
+  </p>
+</PixelCard>
+
+      <PixelCard className="bg-gray-900/70 border-yellow-500/40">
+        <p className="text-xs text-gray-300">
+          Отметь, насколько с тобой согласны эти утверждения.
+          Это поможет понять, какие сферы сейчас проседают и что стоит усилить в первую очередь.
+        </p>
+      </PixelCard>
+
+      <div className="space-y-4 max-h-[55vh] overflow-y-auto pr-1">
+        {BALANCE_QUESTIONS.map((q, idx) => (
+          <PixelCard key={q.id} className="bg-[#111827] border-gray-800">
+            <p className="text-xs text-gray-300 mb-3">
+              <span className="text-yellow-400 mr-1">#{idx + 1}</span>
+              {q.text}
+            </p>
+            <div className="flex justify-between gap-1">
+              {[1, 2, 3, 4, 5].map(v => (
+                <button
+                  key={v}
+                  onClick={() => handleAnswer(q.id, v)}
+                  className={
+                    "flex-1 text-[10px] py-1 rounded border " +
+                    (answers[q.id] === v
+                      ? "bg-yellow-500 border-yellow-400 text-black font-bold"
+                      : "bg-gray-900 border-gray-700 text-gray-300")
+                  }
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
+            <p className="text-[10px] text-gray-500 mt-1">
+              1 — совсем не про меня · 5 — полностью про меня
+            </p>
+          </PixelCard>
+        ))}
+      </div>
+
+      <Button
+        onClick={handleSubmit}
+        disabled={!allAnswered}
+        variant={allAnswered ? 'accent' : 'secondary'}
+        className="w-full py-3 mt-2"
+      >
+        {allAnswered ? 'СФОРМИРОВАТЬ КОЛЕСО БАЛАНСА' : 'ОТВЕТЬ НА ВСЕ ВОПРОСЫ'}
+      </Button>
+    </div>
+  );
+};
+
+const getBalanceRecommendationsFromScores = (scores) => {
+  const recs = [];
+
+  if (scores.discipline < 60) {
+    recs.push("Укрепи дисциплину: фиксируй задачи, ставь минимальные обязательные действия и отмечай их каждый день.");
+  }
+  if (scores.energy < 60) {
+    recs.push("Подними уровень энергии: режим сна, движение и перерывы — без этого будет трудно держать фокус в трейдинге.");
+  }
+  if (scores.focus < 60) {
+    recs.push("Поработай над фокусом: блоки Deep Work без отвлечений помогут быстрее прокачать навыки.");
+  }
+  if (scores.emotions < 60) {
+    recs.push("Укрепляй эмоциональную стабильность: рефлексия, дневник трейдера и работа с реакциями на просадки.");
+  }
+  if (scores.finances < 60) {
+    recs.push("Усиливай финансовый фундамент: базовый план, подушка безопасности и чёткое понимание рисков.");
+  }
+
+  if (recs.length === 0) {
+    recs.push("Твоё колесо выглядит очень ровно — можешь выбирать любую сферу и качать её вглубь, усиливая уже сильные стороны.");
+  }
+
+  return recs;
+};
+
+const BalanceResultsView = ({ profile, onBack }) => {
+  if (!profile?.balanceScores) return null;
+
+  const scores = profile.balanceScores;
+  const radarData = BALANCE_DIMENSIONS.map(dim => ({
+    label: dim.label,
+    value: scores[dim.id] || 0,
+    fullMark: 100,
+  }));
+
+  const recs = getBalanceRecommendationsFromScores(scores);
+
+  return (
+    <div className="space-y-6 animate-in slide-in-from-right-8 duration-300">
+      <button
+        onClick={onBack}
+        className="text-xs text-gray-400 hover:text-white flex items-center gap-1 mb-2"
+      >
+        <Home size={12} /> ВЕРНУТЬСЯ В ДЕРЕВНЮ
+      </button>
+
+      <h2 className="text-xl font-bold text-white mb-4 border-b border-gray-800 pb-2">
+        Твоё Колесо Баланса
+      </h2>
+
+      <PixelCard className="flex flex-col items-center justify-center pt-8 pb-4">
+        <h3 className="text-xs uppercase tracking-widest text-gray-500 font-bold mb-4">
+          Карта Состояния
+        </h3>
+        <RadarChart data={radarData} />
+        <p className="text-[10px] text-gray-500 mt-4 text-center max-w-xs">
+          Это твоё текущее распределение сил: где ты стабилен, а где нужна прокачка,
+          чтобы двигаться от Новичка к Королю Жизни.
+        </p>
+      </PixelCard>
+
+      <PixelCard className="border-emerald-500/30 bg-emerald-900/10">
+        <div className="flex items-center gap-2 mb-3 text-emerald-400">
+          <Target size={18} />
+          <h3 className="font-bold text-sm uppercase">Рекомендации по развитию</h3>
+        </div>
+        <ul className="space-y-2">
+          {recs.map((rec, idx) => (
+            <li
+              key={idx}
+              className="text-xs text-gray-300 flex items-start gap-2 bg-black/30 p-2 rounded"
+            >
+              <span className="mt-0.5 text-emerald-500">➤</span> {rec}
+            </li>
+          ))}
+        </ul>
+      </PixelCard>
+    </div>
+  );
+};
+
+        const TalentTreeView = ({ talentsData, unlockedTalents, currentGold, onUnlock, onBack }) => {
+            return (
+                <div className="space-y-6 animate-in slide-in-from-right-8 duration-300">
+                    <button onClick={onBack} className="text-xs text-gray-400 hover:text-white flex items-center gap-1 mb-2">
+                        <Home size={12}/> ВЕРНУТЬСЯ В ДЕРЕВНЮ
+                    </button>
+                    <h2 className="text-xl font-bold text-white mb-4 border-b border-gray-800 pb-2 flex items-center gap-2">
+                        <Star size={24} className="text-purple-400"/> ДЕРЕВО ТАЛАНТОВ
+                    </h2>
+
+                    <PixelCard className="bg-gray-900 border-yellow-500/30">
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-400">Твое Золото:</span>
+                            <span className="text-2xl font-bold text-yellow-400 flex items-center gap-2">
+                                {currentGold} 🪙
+                            </span>
+                        </div>
+                    </PixelCard>
+
+                    <div className="space-y-4">
+                        {talentsData.map((talent, index) => {
+                            const currentLevel = unlockedTalents[talent.id] || 0;
+const nextLevel = currentLevel + 1;
+const nextCost = talent.cost * nextLevel;
+const isMaxLevel = currentLevel >= talent.maxLevel;
+const isLocked = talent.prereqTalentId && (unlockedTalents[talent.prereqTalentId] || 0) < 1;
+const canAfford = currentGold >= nextCost;
+
+const description = isMaxLevel
+  ? 'Максимальный уровень таланта достигнут.'
+  : talent.description;
+
+// 🔥 Таланты, которые дают слоты инвентаря
+const isArtifactSlotTalent =
+  talent.effect === 'extra_equip_slot' ||
+  (talent.id && talent.id.startsWith('artifact_master'));
+  const isSubscriptionSynergyTalent =
+  talent.effect === 'exp_boost' ||
+  talent.effect === 'gold_boost' ||
+  talent.effect === 'extra_task_slot' ||
+  isArtifactSlotTalent;
+
+// подпись бонуса
+const effectValue = (talent.baseValue * 100 * nextLevel).toFixed(0);
+const effectLabel =
+  talent.effect === 'exp_boost'
+    ? `+${effectValue}% EXP`
+    : talent.effect === 'gold_boost'
+    ? `+${effectValue}% Золота`
+    : talent.effect === 'extra_task_slot'
+    ? `+${currentLevel + 1} Слот задач`
+    : isArtifactSlotTalent
+    ? `+${currentLevel + 1} Слот артефакта`
+    : '';
+
+                            return (
+                                <PixelCard key={talent.id} className={`${isLocked ? 'opacity-50 grayscale' : ''}`}>
+                                    {talent.prereqTalentId && (
+                                        <p className="text-[10px] text-red-500 font-bold mb-1">
+                                            {isLocked ? '🔒 Требуется предыдущий талант' : '✔️ Условие выполнено'}
+                                        </p>
+                                    )}
+                                    <div className="flex items-center justify-between">
+  <div className="flex items-center gap-3">
+    <div
+      className={
+        "text-4xl " +
+        (isArtifactSlotTalent ? "text-blue-400" : "text-purple-400")
+      }
+    >
+      {isArtifactSlotTalent ? "🧿" : "✨"}
+    </div>
+    <div>
+      <h3 className="font-bold text-gray-200">
+        {talent.name}{" "}
+        <span className="text-xs text-gray-500">
+          Ур. {currentLevel} / {talent.maxLevel}
+        </span>
+        {isArtifactSlotTalent && (
+          <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-blue-900/40 border border-blue-500/60 text-blue-200 uppercase">
+            СЛОТЫ+
+          </span>
+        )}
+      </h3>
+
+      <p className="text-xs text-gray-400">{description}</p>
+
+      {isArtifactSlotTalent && (
+        <p className="text-[10px] text-blue-300 mt-1">
+          Открывает дополнительные слоты экипировки в Инвентаре. Эффект
+          суммируется с подпиской и Premium Pass, а в{" "}
+          <span className="font-semibold text-yellow-300">Pro</span> ощущается
+          максимально.
+        </p>
+      )}
+
+      {!isArtifactSlotTalent && isSubscriptionSynergyTalent && (
+  <p className="text-[10px] text-indigo-300 mt-1">
+    Этот талант усиливается подпиской{" "}
+    <span className="font-semibold text-yellow-300">Pro</span>:
+    больше слотов, золота и опыта за задачи.
+  </p>
+)}
+
+      {currentLevel > 0 && (
+        <p className="text-xs font-bold text-emerald-400 mt-1">
+          Текущий бонус: {effectLabel}
+        </p>
+      )}
+    </div>
+  </div>
+</div>
+                                    
+                                    <div className="mt-4 pt-4 border-t border-gray-800">
+                                        {isMaxLevel ? (
+                                            <div className="text-center text-emerald-400 text-sm font-bold p-2 bg-emerald-900/10 rounded">
+                                                МАКСИМАЛЬНЫЙ УРОВЕНЬ
+                                            </div>
+                                        ) : (
+                                            <Button
+                                                onClick={() => onUnlock(talent.id, currentLevel)}
+                                                variant={canAfford ? 'primary' : 'secondary'}
+                                                disabled={isLocked || !canAfford}
+                                                className="w-full"
+                                            >
+                                                {canAfford ? `ИЗУЧИТЬ ( ${nextCost} 🪙)` : `НУЖНО ${nextCost} 🪙`}
+                                            </Button>
+                                        )}
+                                    </div>
+                                </PixelCard>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        };
+
+        const InventoryView = ({ artifacts, equippedIds, maxEquipSlots = 3, onToggleEquip, onBack }) => {
+            const equippedArtifacts = artifacts.filter(a => equippedIds.includes(a.id));
+            const inventoryArtifacts = artifacts.filter(a => !equippedIds.includes(a.id));
+
+            return (
+                <div className="space-y-6 animate-in slide-in-from-right-8 duration-300">
+                    <button onClick={onBack} className="text-xs text-gray-400 hover:text-white flex items-center gap-1 mb-2">
+                        <Home size={12}/> ВЕРНУТЬСЯ В ДЕРЕВНЮ
+                    </button>
+                    <h2 className="text-xl font-bold text-white mb-4 border-b border-gray-800 pb-2 flex items-center gap-2">
+                        <Pocket size={24} className="text-blue-400"/> ИНВЕНТАРЬ
+                    </h2>
+
+                    <PixelCard className="border-blue-500/30 bg-blue-900/10">
+                        <h3 className="text-sm font-bold text-blue-400 uppercase tracking-widest mb-3">Экипировано ( {equippedIds.length} / {maxEquipSlots} )</h3>
+                        <div className="grid grid-cols-3 gap-3">
+                            {Array.from({ length: maxEquipSlots }).map((_, index) => {
+                                const artifact = equippedArtifacts[index];
+                                return (
+                                    <div 
+                                        key={index}
+                                        className={`
+                                            flex flex-col items-center justify-center p-2 rounded-lg h-24 text-center
+                                            ${artifact ? 'bg-gray-800 border-2 border-yellow-500 shadow-xl cursor-pointer' : 'bg-gray-900 border border-gray-700 opacity-50'}
+                                        `}
+                                        onClick={() => artifact && onToggleEquip(artifact)}
+                                    >
+                                        {artifact ? (
+                                            <>
+                                                <span className="text-3xl">{artifact.visual}</span>
+                                                <span className="text-[10px] font-bold text-yellow-400 mt-1">{artifact.name}</span>
+                                                <span className="text-[8px] text-gray-500">Снять</span>
+                                            </>
+                                        ) : (
+                                            <span className="text-xs text-gray-600">Слот {index + 1}</span>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </PixelCard>
+
+                    <h3 className="text-xs uppercase tracking-widest text-gray-500 font-bold ml-1 pt-4">Неактивные Артефакты ({inventoryArtifacts.length})</h3>
+                    <div className="space-y-3">
+                        {inventoryArtifacts.length === 0 ? (
+                            <PixelCard className="text-center text-gray-500">
+                                Твой инвентарь пуст. Повышай Уровень, чтобы найти Артефакты!
+                            </PixelCard>
+                        ) : (
+                            inventoryArtifacts.map(artifact => (
+                                <PixelCard key={artifact.id} className="flex justify-between items-center group">
+                                    <div className="flex items-center gap-3">
+                                        <div className="text-3xl">{artifact.visual}</div>
+                                        <div>
+                                            <h4 className="font-bold text-gray-200">{artifact.name}</h4>
+                                            <p className="text-xs text-gray-500">{artifact.description}</p>
+                                        </div>
+                                    </div>
+                                    <Button 
+                                        onClick={() => onToggleEquip(artifact)} 
+                                        variant="primary" 
+                                        className="opacity-80 group-hover:opacity-100"
+                                    >
+                                        ЭКИПИРОВАТЬ
+                                    </Button>
+                                </PixelCard>
+                            ))
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const ShopView = ({ upgrades, onUpgrade, currentGold, buildingTaskSlots, subscriptionTier, onBuyBuilding, onBack }) => {
+            return (
+                <div className="space-y-6 animate-in slide-in-from-right-8 duration-300">
+                    <button onClick={onBack} className="text-xs text-gray-400 hover:text-white flex items-center gap-1 mb-2">
+                        <Home size={12}/> ВЕРНУТЬСЯ В ДЕРЕВНЮ
+                    </button>
+
+                    <h2 className="text-xl font-bold text-white mb-4 border-b border-gray-800 pb-2">Магазин Улучшений</h2>
+                    <PixelCard className="bg-gray-900 border-yellow-500/30">
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-400">Твое Золото:</span>
+                            <span className="text-2xl font-bold text-yellow-400 flex items-center gap-2">
+                                {currentGold} 🪙
+                            </span>
+                        </div>
+                    </PixelCard>
+                    
+                    <div className="space-y-4">
+                        {UPGRADES.map((upgradeSet) => {
+                            const currentLevel = upgrades[upgradeSet.locationId] || 1;
+                            const currentStep = getCurrentUpgrade(upgradeSet.locationId, currentLevel);
+                            const nextStep = getNextUpgrade(upgradeSet.locationId, currentLevel);
+                            
+                            if (!currentStep) return null;
+
+                            return (
+                                <PixelCard key={upgradeSet.locationId} className="border-gray-700">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-4">
+                                            <div className="text-4xl">{currentStep.visual}</div>
+                                            <div>
+                                                <h3 className="font-bold text-gray-200">{upgradeSet.name}</h3>
+                                                <p className="text-xs text-gray-500">
+                                                    Текущий Уровень: <span className="text-yellow-400 font-bold">{currentStep.level}</span> ({currentStep.name})
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-4 pt-4 border-t border-gray-800">
+                                        {nextStep ? (() => {
+                                            const subBonuses = getSubscriptionBonuses(subscriptionTier || 'basic');
+                                            const discount = (subscriptionTier === 'advanced' || subscriptionTier === 'pro')
+                                              ? (1 - 1 / subBonuses.goldMultiplier)   // небольшая визуально логичная скидка
+                                              : 0;
+
+                                            const finalCost = Math.round(nextStep.cost * (1 - discount));
+                                            const canBuy = currentGold >= finalCost;
+
+                                            return (
+                                              <div className="flex justify-between items-center">
+                                                <div className="text-xs text-gray-400 leading-tight max-w-[60%]">
+                                                  След. Уровень (<span className="text-white">{nextStep.level}</span>): {nextStep.name}
+                                                  {discount > 0 && (
+                                                    <div className="text-[10px] text-emerald-300 mt-1">
+                                                      Скидка по подписке: −{Math.round(discount * 100)}%
+                                                    </div>
+                                                  )}
+                                                </div>
+                                                <Button 
+                                                  onClick={() => onUpgrade(upgradeSet.locationId, finalCost)}
+                                                  variant={canBuy ? 'primary' : 'secondary'}
+                                                  disabled={!canBuy}
+                                                >
+                                                  {canBuy
+                                                    ? `КУПИТЬ (${finalCost} 🪙)`
+                                                    : `НУЖНО ${finalCost} 🪙`}
+                                                </Button>
+                                              </div>
+                                            );
+                                        })() : (
+                                            <div className="text-center text-emerald-400 text-sm font-bold p-2 bg-emerald-900/10 rounded">
+                                                МАКСИМАЛЬНЫЙ УРОВЕНЬ
+                                            </div>
+                                        )}
+                                    </div>
+                                </PixelCard>
+                            );
+                        })}
+                    </div>
+
+<PixelCard className="mt-4 border-indigo-500/40 bg-indigo-900/10">
+  <div className="flex items-start justify-between gap-3">
+    <div>
+      <h3 className="font-bold text-gray-200">Новые Здания TVA</h3>
+      <p className="text-xs text-gray-400 mt-1">
+        Каждое новое здание открывает +1 дополнительное ежедневное задание
+        для всей деревни.
+      </p>
+      <p className="text-[11px] text-indigo-300 mt-2">
+        Сейчас построено: <span className="font-bold">{buildingTaskSlots || 0}</span>
+      </p>
+    </div>
+
+    {(() => {
+      const maxBuildings = 5;
+      const currentBuildings = buildingTaskSlots || 0;
+      const nextCost = 1500 * (currentBuildings + 1);
+      const canBuy = currentBuildings < maxBuildings && currentGold >= nextCost;
+
+      if (currentBuildings >= maxBuildings) {
+        return (
+          <div className="text-[10px] text-emerald-400 font-bold text-right">
+            МАКС. УРОВЕНЬ<br/>ВСЕ ЗДАНИЯ ПОСТРОЕНЫ
+          </div>
+        );
+      }
+
+      return (
+        <Button
+          onClick={onBuyBuilding}
+          variant={canBuy ? "accent" : "secondary"}
+          disabled={!canBuy}
+          className="whitespace-nowrap"
+        >
+          {canBuy ? `ПОСТРОИТЬ (${nextCost} 🪙)` : `НУЖНО ${nextCost} 🪙`}
+        </Button>
+      );
+    })()}
+  </div>
+</PixelCard>
+
+                </div>
+            );
+        };
+
+        const getSkillData = (stats) => {
+  // Суммируем задачи по категориям за все дни
+  const totals = stats.reduce(
+    (acc, day) => {
+      acc.sleep    += day.sleepTasks    || 0;
+      acc.sport    += day.sportTasks    || 0;
+      acc.charts   += day.chartTasks    || 0;
+      acc.learning += day.learningTasks || 0;
+      acc.research += (day.researchTasks || 0) + (day.planningTasks || 0); // стратегию считаем как research+planning
+      return acc;
+    },
+    { sleep: 0, sport: 0, charts: 0, learning: 0, research: 0 }
+  );
+
+  const values = Object.values(totals);
+  const maxValue = Math.max(...values, 1); // чтоб fullMark не был 0
+
+  return [
+    { label: 'Сон',       value: totals.sleep,    fullMark: maxValue },
+    { label: 'Спорт',     value: totals.sport,    fullMark: maxValue },
+    { label: 'Графики',   value: totals.charts,   fullMark: maxValue },
+    { label: 'Знания',    value: totals.learning, fullMark: maxValue },
+    { label: 'Стратегия', value: totals.research, fullMark: maxValue },
+  ];
+};
+
+        const getRecommendations = (profile, statsHistory) => {
+            return ["🌟 Твоя дисциплина безупречна, Трейдер. Продолжай в том же духе."];
+        };
+
+        const StatsView = ({ stats, profile, subscriptionTier, hasPremiumPass, onBack }) => {
+  if (!profile) return null;
+
+  const isBasic = subscriptionTier === 'basic';
+  const isAdvanced = subscriptionTier === 'advanced';
+  const isPro = subscriptionTier === 'pro';
+
+  // есть ли расширенная аналитика
+  const hasAdvancedAnalytics = isAdvanced || isPro;
+  // полная история (7 дней) — только Pro
+  const hasFullHistory = isPro;
+
+  return (
+                <div className="space-y-6 animate-in slide-in-from-right-8 duration-300">
+                    <button onClick={onBack} className="text-xs text-gray-400 hover:text-white flex items-center gap-1 mb-2">
+                       <Home size={12}/> ВЕРНУТЬСЯ В ДЕРЕВНЮ
+                    </button>
+
+                    <h2 className="text-xl font-bold text-white mb-4 border-b border-gray-800 pb-2">Прогресс Трейдера</h2>
+
+                    <PixelCard className="flex flex-col items-center justify-center pt-8 pb-4">
+                      <h3 className="text-xs uppercase tracking-widest text-gray-500 font-bold mb-4">Колесо Навыков</h3>
+                      <RadarChart data={getSkillData(stats)} />
+                      <p className="text-[10px] text-gray-500 mt-4 text-center max-w-xs">
+                        Диаграмма показывает количество выполненных задач в каждой категории за всё время.
+                      </p>
+                    </PixelCard>
+
+                    {hasAdvancedAnalytics ? (
+  // 🔓 Доступно для Advanced / Pro
+  <PixelCard className="border-indigo-500/30 bg-indigo-900/10">
+    <div className="flex items-center gap-2 mb-3 text-indigo-400">
+      <Target size={18} />
+      <h3 className="font-bold text-sm uppercase">Советы Ментора</h3>
+    </div>
+    <ul className="space-y-2">
+      {getRecommendations(profile, stats).map((rec, idx) => (
+        <li
+          key={idx}
+          className="text-xs text-gray-300 flex items-start gap-2 bg-black/20 p-2 rounded"
+        >
+          <span className="mt-0.5 text-indigo-500">➤</span> {rec}
+        </li>
+      ))}
+    </ul>
+  </PixelCard>
+) : (
+  // 🔒 Тизер для без подписки
+  <PixelCard className="border-gray-800 bg-black/40">
+    <div className="flex items-center gap-2 mb-2 text-gray-400">
+      <Lock size={16} className="text-gray-500" />
+      <h3 className="font-bold text-sm uppercase">Советы Ментора</h3>
+    </div>
+    <p className="text-xs text-gray-500 mb-2">
+      Персонализированные советы наставников TVA доступны в подписке{' '}
+      <span className="text-indigo-300 font-semibold">Advanced</span> и{' '}
+      <span className="text-yellow-300 font-semibold">Pro</span>.
+    </p>
+    <p className="text-[10px] text-gray-600">
+      Открой экран <span className="text-yellow-400 font-semibold">Premium Pass</span> в деревне, чтобы
+      выбрать тариф и разблокировать расширенную аналитику.
+    </p>
+  </PixelCard>
+)}
+
+                    <div className="space-y-2">
+  <h3 className="text-xs uppercase tracking-widest text-gray-500 font-bold ml-1">
+    {hasFullHistory ? 'Последние 7 дней' : 'Последние дни (DEMO)'}
+  </h3>
+
+  {(() => {
+    const reversed = stats.slice().reverse();
+    const limit = hasFullHistory ? 7 : 3;
+    const visibleStats = reversed.slice(0, limit);
+
+    return (
+      <>
+        {visibleStats.map((stat) => (
+          <div
+            key={stat.date}
+            className="flex items-center justify-between p-3 bg-[#151a25] rounded border border-[#2a3441] text-xs"
+          >
+            <span className="text-gray-400">{stat.date}</span>
+            <div className="flex gap-4">
+              <span className="text-emerald-400">{stat.tasksCompleted} Задач</span>
+              <span className="text-yellow-400">+{stat.expGained} EXP</span>
+            </div>
+          </div>
+        ))}
+
+        {stats.length === 0 && (
+          <div className="text-center text-gray-600 text-xs py-4">
+            Нет данных. Выполняй задачи!
+          </div>
+        )}
+
+        {!hasFullHistory && stats.length > 0 && (
+          <p className="text-[10px] text-gray-600 mt-1">
+            Полная история за 7 дней и более доступна в подписке{' '}
+            <span className="text-yellow-300 font-semibold">Pro</span>.
+          </p>
+        )}
+      </>
+    );
+  })()}
+</div>
+                </div>
+            );
+        };
+
+        const PROFILE_EDIT_COST = 500;
+
+const ProfileEditView = ({ profile, playerGold, onSave, onBack }) => {
+  const [name, setName] = React.useState(profile.name || '');
+  const [goal, setGoal] = React.useState(profile.goal || 'beginner');
+  const [sleepTime, setSleepTime] = React.useState(profile.sleepTimeTarget || '23:00');
+  const [wakeTime, setWakeTime] = React.useState(profile.wakeTimeTarget || '07:00');
+  const [sportPerDay, setSportPerDay] = React.useState(profile.sportPerDayTarget || 30);
+
+  const hasChanges =
+    name !== profile.name ||
+    goal !== profile.goal ||
+    sleepTime !== profile.sleepTimeTarget ||
+    wakeTime !== profile.wakeTimeTarget ||
+    sportPerDay !== profile.sportPerDayTarget;
+
+  const canAfford = playerGold >= PROFILE_EDIT_COST;
+
+  const handleSaveClick = () => {
+    if (!hasChanges) return;
+    onSave(
+      {
+        ...profile,
+        name,
+        goal,
+        sleepTimeTarget: sleepTime,
+        wakeTimeTarget: wakeTime,
+        sportPerDayTarget: sportPerDay,
+      },
+      PROFILE_EDIT_COST
+    );
+  };
+
+  return (
+    <div className="space-y-6 animate-in slide-in-from-right-8 duration-300">
+      <button
+        onClick={onBack}
+        className="text-xs text-gray-400 hover:text-white flex items-center gap-1 mb-2"
+      >
+        <Home size={12} /> ВЕРНУТЬСЯ В ДЕРЕВНЮ
+      </button>
+
+      <h2 className="text-xl font-bold text-white mb-4 border-b border-gray-800 pb-2">
+        Настройки Профиля
+      </h2>
+
+      <PixelCard className="bg-gray-900 border-yellow-500/30">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm text-gray-400">Твоё золото:</span>
+          <span className="text-lg font-bold text-yellow-400 flex items-center gap-1">
+            {playerGold} 🪙
+          </span>
+        </div>
+        <p className="text-[11px] text-gray-400">
+          Любое изменение профиля списывает{' '}
+          <span className="text-yellow-400 font-bold">{PROFILE_EDIT_COST} 🪙</span>.
+        </p>
+      </PixelCard>
+
+      <PixelCard className="space-y-4">
+        <div>
+          <label className="block text-xs uppercase text-gray-500 font-bold mb-1">
+            Имя Трейдера
+          </label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full bg-gray-900 border border-gray-700 text-white p-2 rounded focus:border-yellow-500 outline-none"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs uppercase text-gray-500 font-bold mb-1">
+            Цель / Роль
+          </label>
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { id: 'beginner', label: 'Новичок' },
+              { id: 'advanced', label: 'Опытный' },
+              { id: 'pro', label: 'Профи' },
+            ].map((g) => (
+              <button
+                key={g.id}
+                onClick={() => setGoal(g.id)}
+                className={`p-2 text-xs uppercase font-bold border rounded transition-colors ${
+                  goal === g.id
+                    ? 'bg-yellow-600 border-yellow-500 text-white'
+                    : 'bg-gray-800 border-gray-700 text-gray-400'
+                }`}
+              >
+                {g.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs uppercase text-gray-500 font-bold mb-1">
+              Отбой
+            </label>
+            <input
+              type="time"
+              value={sleepTime}
+              onChange={(e) => setSleepTime(e.target.value)}
+              className="w-full bg-gray-900 border border-gray-700 text-white p-2 rounded"
+            />
+          </div>
+          <div>
+            <label className="block text-xs uppercase text-gray-500 font-bold mb-1">
+              Подъём
+            </label>
+            <input
+              type="time"
+              value={wakeTime}
+              onChange={(e) => setWakeTime(e.target.value)}
+              className="w-full bg-gray-900 border border-gray-700 text-white p-2 rounded"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs uppercase text-gray-500 font-bold mb-1">
+            Спорт (мин/день)
+          </label>
+          <input
+            type="number"
+            value={sportPerDay}
+            onChange={(e) => setSportPerDay(parseInt(e.target.value) || 0)}
+            className="w-full bg-gray-900 border border-gray-700 text-white p-2 rounded"
+          />
+        </div>
+      </PixelCard>
+
+      <Button
+        onClick={handleSaveClick}
+        variant={hasChanges && canAfford ? 'accent' : 'secondary'}
+        disabled={!hasChanges || !canAfford}
+        className="w-full py-3"
+      >
+        {hasChanges
+          ? canAfford
+            ? `СОХРАНИТЬ ИЗМЕНЕНИЯ (−${PROFILE_EDIT_COST} 🪙)`
+            : `НУЖНО ${PROFILE_EDIT_COST} 🪙`
+          : 'ИЗМЕНЕНИЙ НЕТ'}
+      </Button>
+    </div>
+  );
+};
+
+        const RoadmapView = ({ onBack }) => {
+  return (
+    <div className="space-y-6 animate-in slide-in-from-right-8 duration-300">
+      {/* Кнопка "назад" */}
+      <button
+        onClick={onBack}
+        className="text-xs text-gray-400 hover:text-white flex items-center gap-1 mb-2"
+      >
+        <Home size={12} />
+        ВЕРНУТЬСЯ В ДЕРЕВНЮ
+      </button>
+
+      {/* Заголовок и краткий питч */}
+      <PixelCard className="border-yellow-500/30 bg-gradient-to-r from-gray-900 to-gray-800">
+        <h2 className="text-xl font-bold text-yellow-400 mb-2">
+          TVA Ecosystem Roadmap
+        </h2>
+        <p className="text-xs text-gray-400">
+          План развития Trading Village Academy: от личного трекера дисциплины
+          до полноценной геймифицированной платформы для трейдеров.
+        </p>
+        <span className="inline-block mt-3 text-[10px] uppercase tracking-widest text-yellow-500 bg-yellow-900/20 px-2 py-1 rounded border border-yellow-700/40">
+          MVP → Social → PvP → Web3
+        </span>
+      </PixelCard>
+
+      {/* Q1 — Foundation */}
+      <PixelCard className="border-gray-700">
+        <h3 className="text-lg font-bold text-white mb-3">Q1 — Foundation</h3>
+        <ul className="text-sm text-gray-300 space-y-2">
+          <li>• Онлайн-синхронизация профиля и прогресса</li>
+          <li>• Расширенная статистика и аналитика привычек</li>
+          <li>• Уровни прогресса деревни и апгрейды зданий</li>
+          <li>• Первый набор артефактов и талантов</li>
+        </ul>
+      </PixelCard>
+
+      {/* Q2 — Social Layer */}
+      <PixelCard className="border-gray-700">
+        <h3 className="text-lg font-bold text-white mb-3">Q2 — Social Layer</h3>
+        <ul className="text-sm text-gray-300 space-y-2">
+          <li>• Друзья и социальный граф трейдеров</li>
+          <li>• Лидерборды: день / неделя / сезон</li>
+          <li>• Социальные механики: кланы / деревни-союзы</li>
+          <li>• Статусные роли и «титулы» внутри деревни</li>
+        </ul>
+      </PixelCard>
+
+      {/* Q3 — PvP / Метагейм */}
+      <PixelCard className="border-gray-700">
+        <h3 className="text-lg font-bold text-white mb-3">
+          Q3 — PvP & Meta Progression
+        </h3>
+        <ul className="text-sm text-gray-300 space-y-2">
+          <li>• PvP-«дуэли дисциплины» между трейдерами</li>
+          <li>• Еженедельные боссы и командные испытания</li>
+          <li>• Сезонные события с наградами и рейтингами</li>
+          <li>• Глубже прогресс деревни и персонажа</li>
+        </ul>
+      </PixelCard>
+
+      {/* Q4 — Web3 / NFT / Token (если будете делать) */}
+      <PixelCard className="border-gray-700">
+        <h3 className="text-lg font-bold text-white mb-3">Q4 — Web3 Layer</h3>
+        <ul className="text-sm text-gray-300 space-y-2">
+          <li>• Персонажи и здания как коллекции / NFT-скины</li>
+          <li>• Артефакты с историей как on-chain объекты</li>
+          <li>• TVA Token и внутренняя экономика (опционально)</li>
+          <li>• Социальный «репутационный» слой дисциплины</li>
+        </ul>
+      </PixelCard>
+
+      {/* Vision-блок для инвестора */}
+      <PixelCard className="border-yellow-700/30 bg-yellow-900/5">
+        <h3 className="text-lg font-bold text-yellow-400 mb-2">
+          Vision: «Duolingo для трейдеров»
+        </h3>
+        <p className="text-sm text-gray-300 leading-relaxed">
+          TVA — это не просто трекер привычек. Это геймифицированная академия,
+          где дисциплина, обучение и торговая практика объединены в единый
+          игровой опыт с прогрессией, социальными механиками и будущим
+          Web3-слоем.
+        </p>
+      </PixelCard>
+    </div>
+  );
+};
+
+const PremiumView = ({ onBack, hasPremiumPass, subscriptionTier, onActivatePremium, onSetSubscriptionTier }) => {
+  const isBasic = subscriptionTier === 'basic';
+  const isAdvanced = subscriptionTier === 'advanced';
+  const isPro = subscriptionTier === 'pro';
+
+  return (
+    <div className="space-y-6 animate-in slide-in-from-right-8 duration-300">
+      {/* Кнопка "назад" */}
+      <button
+        onClick={onBack}
+        className="text-xs text-gray-400 hover:text-white flex items-center gap-1 mb-2"
+      >
+        <Home size={12} />
+        ВЕРНУТЬСЯ В ДЕРЕВНЮ
+      </button>
+
+      {/* HERO-блок */}
+      <PixelCard className="border-yellow-500/40 bg-gradient-to-r from-gray-900 to-gray-800">
+        <div className="flex items-start gap-4">
+          <div className="p-3 bg-yellow-500/10 rounded-full border border-yellow-400/60">
+            <Crown size={32} className="text-yellow-400" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-xl font-bold text-yellow-400">
+              TVA Premium Pass
+            </h2>
+            <p className="text-xs text-gray-300">
+              Разблокируй дополнительные локации, бустеры EXP, эксклюзивные
+              артефакты и VIP-испытания. Premium — это ускоритель дисциплины,
+              а не pay-to-win.
+            </p>
+            <div className="flex flex-wrap gap-2 text-[10px]">
+              <span className="px-2 py-1 rounded bg-yellow-500/10 border border-yellow-600/40 text-yellow-300 font-bold uppercase tracking-widest">
+                +3 слота задач
+              </span>
+              <span className="px-2 py-1 rounded bg-emerald-500/10 border border-emerald-600/40 text-emerald-300 font-bold uppercase tracking-widest">
+                VIP Weekly Boss
+              </span>
+              <span className="px-2 py-1 rounded bg-purple-500/10 border border-purple-600/40 text-purple-300 font-bold uppercase tracking-widest">
+                Эксклюзивные артефакты
+              </span>
+            </div>
+          </div>
+        </div>
+
+         <div className="mt-4">
+          <Button
+            variant={hasPremiumPass ? "secondary" : "accent"}
+            className="w-full py-3"
+            onClick={hasPremiumPass ? undefined : onActivatePremium}
+            disabled={hasPremiumPass}
+          >
+            {hasPremiumPass
+              ? "PREMIUM УЖЕ АКТИВЕН"
+              : "АКТИВИРОВАТЬ PREMIUM PASS"}
+          </Button>
+
+          <p className="text-[10px] text-gray-500 mt-2 text-center">
+            Сейчас активация Premium Pass включает его локально в профиле игрока
+            (демо-режим). Интеграция оплаты и биллинга будет добавлена на этапе
+            подключения бэкенда / стора.
+          </p>
+        </div>
+      </PixelCard>
+
+      {/* Блок: что даёт Premium Pass */}
+      <PixelCard className="border-gray-700 bg-gray-900/60">
+        <div className="flex items-center gap-2 mb-3">
+          <Shield size={18} className="text-emerald-400" />
+          <h3 className="text-sm font-bold text-white uppercase tracking-widest">
+            Что даёт Premium Pass
+          </h3>
+        </div>
+
+        <ul className="text-xs text-gray-300 space-y-2">
+          <li>
+            • <span className="text-yellow-300 font-semibold">+3 ежедневных слота задач</span>{' '}
+            — быстрее прокачиваешь дисциплину и уровень персонажа.
+          </li>
+          <li>
+            • <span className="text-yellow-300 font-semibold">Дополнительные локации</span>:
+            Дворец Стратегов, Зал Мастеров Графиков, Дом Эмоциональной
+            Осознанности.
+          </li>
+          <li>
+            • <span className="text-yellow-300 font-semibold">Временные бустеры EXP</span> —
+            x1.2 / x1.5 / x2 на ограниченное время.
+          </li>
+          <li>
+            • <span className="text-yellow-300 font-semibold">Эксклюзивные артефакты</span>:
+            Корона Дисциплины, Камень Спокойствия, Свиток Прозорливости.
+          </li>
+          <li>
+            • <span className="text-yellow-300 font-semibold">VIP Weekly Boss</span> с
+            увеличенными наградами и шансом редкого дропа.
+          </li>
+          <li>
+            • <span className="text-yellow-300 font-semibold">Premium-бейдж</span> в профиле и
+            визуальный статус внутри деревни.
+          </li>
+        </ul>
+      </PixelCard>
+
+      {/* Блок: Подписки TVA */}
+      <PixelCard className="border-indigo-500/40 bg-indigo-900/10">
+        <div className="flex items-center gap-2 mb-3">
+          <CreditCard size={18} className="text-indigo-300" />
+          <h3 className="text-sm font-bold text-white uppercase tracking-widest">
+            Подписки TVA (Recurring модель)
+          </h3>
+        </div>
+
+    
+          {/* Basic */}
+          <div
+            className={
+              "p-3 rounded border " +
+              (isBasic
+                ? "bg-gray-900 border-emerald-400 shadow-lg"
+                : "bg-gray-900/80 border-gray-700")
+            }
+          >
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-sm font-bold text-gray-100">
+                Basic
+              </span>
+              <span className="text-xs font-bold text-emerald-300">
+                $4.99 / месяц
+              </span>
+            </div>
+            <p className="text-[11px] text-gray-400 mb-1">
+              Облако, extended-статистика, история прогресса.
+            </p>
+            <ul className="text-[10px] text-gray-300 space-y-1 mb-2">
+              <li>• Синхронизация в облаке</li>
+              <li>• Неограниченная история привычек</li>
+              <li>• Базовые отчёты трейдера</li>
+            </ul>
+            <Button
+              variant={isBasic ? "success" : "primary"}
+              className="w-full py-1.5 text-[11px]"
+              onClick={() => onSetSubscriptionTier('basic')}
+            >
+              {isBasic ? "ТАРИФ BASIC АКТИВЕН" : "ВЫБРАТЬ BASIC"}
+            </Button>
+          </div>
+
+           {/* Advanced */}
+          <div
+            className={
+              "p-3 rounded border " +
+              (isAdvanced
+                ? "bg-gray-900 border-emerald-400 shadow-lg"
+                : "bg-gray-900/80 border-indigo-500/60")
+            }
+          >
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-sm font-bold text-indigo-200">
+                Advanced
+              </span>
+              <span className="text-xs font-bold text-emerald-300">
+                $8.99 / месяц
+              </span>
+            </div>
+            <p className="text-[11px] text-gray-400 mb-1">
+              Глубокая аналитика дисциплины и привычек.
+            </p>
+            <ul className="text-[10px] text-gray-300 space-y-1 mb-2">
+              <li>• Heatmap дисциплины</li>
+              <li>• Распределение задач по категориям</li>
+              <li>• Расширенные рекомендации наставников TVA</li>
+            </ul>
+            <Button
+              variant={isAdvanced ? "success" : "primary"}
+              className="w-full py-1.5 text-[11px]"
+              onClick={() => onSetSubscriptionTier('advanced')}
+            >
+              {isAdvanced ? "ТАРИФ ADVANCED АКТИВЕН" : "ВЫБРАТЬ ADVANCED"}
+            </Button>
+          </div>
+
+          {/* Pro */}
+          <div
+            className={
+              "p-3 rounded border " +
+              (isPro
+                ? "bg-gray-900 border-emerald-400 shadow-lg"
+                : "bg-gray-900/80 border-yellow-500/70")
+            }
+          >
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-sm font-bold text-yellow-300 flex items-center gap-1">
+                Pro <Star size={14} className="text-yellow-400" />
+              </span>
+              <span className="text-xs font-bold text-emerald-300">
+                $14.99 / месяц
+              </span>
+            </div>
+            <p className="text-[11px] text-gray-400 mb-1">
+              Для тех, кто хочет максимум геймификации и статуса.
+            </p>
+            <ul className="text-[10px] text-gray-300 space-y-1 mb-2">
+              <li>• Всё из Advanced</li>
+              <li>• VIP Weekly Boss и повышенный шанс дропа артефактов</li>
+              <li>• Скидки на бустеры и скины</li>
+              <li>• Золотой фрейм профиля и премиальные эффекты</li>
+            </ul>
+            <Button
+              variant={isPro ? "success" : "primary"}
+              className="w-full py-1.5 text-[11px]"
+              onClick={() => onSetSubscriptionTier('pro')}
+            >
+              {isPro ? "ТАРИФ PRO АКТИВЕН" : "ВЫБРАТЬ PRO"}
+            </Button>
+          </div>
+
+        <p className="text-[10px] text-gray-500 mt-2">
+          На уровне прототипа цены и условия фиктивны и используются для
+          демонстрации потенциальной выручки и модели LTV.
+        </p>
+      </PixelCard>
+
+      {/* Блок: Скины и визуал (не P2W) */}
+      <PixelCard className="border-gray-700 bg-gray-900/70">
+        <div className="flex items-center gap-2 mb-3">
+          <ShoppingBag size={18} className="text-pink-300" />
+          <h3 className="text-sm font-bold text-white uppercase tracking-widest">
+            Скины и визуальные улучшения
+          </h3>
+        </div>
+
+        <p className="text-xs text-gray-300 mb-2">
+          Всё, что продаётся отдельно от Premium и подписок, — чистая
+          косметика пока что, не стоит быть к этому строгим, ведь мы только начинаем.
+        </p>
+
+        <ul className="text-[11px] text-gray-300 space-y-1">
+          <li>• Скины зданий: неоновые мэрии, храмы графиков, кибер-баня.</li>
+          <li>• Альтернативные образы наставников (Старый Трейдер, Монах, Дед Аналитик).</li>
+          <li>• Эффекты при выполнении задач: ауры, частицы, «огненная дисциплина».</li>
+          <li>• Emotes / стикеры для будущего социального слоя.</li>
+        </ul>
+
+        <p className="text-[10px] text-gray-500 mt-2">
+          Этот блок можно масштабировать без риска для экономики — это
+          высокомаржинальный косметический контент.
+        </p>
+      </PixelCard>
+    </div>
+  );
+};
+
+const TelegramHubView = ({ onBack }) => {
+  return React.createElement(
+    'div',
+    { className: "space-y-6 animate-in slide-in-from-right-8 duration-300" },
+
+    // Кнопка назад
+    React.createElement(
+      'button',
+      {
+        onClick: onBack,
+        className: "text-xs text-gray-400 hover:text-white flex items-center gap-1 mb-2"
+      },
+      "← ВЕРНУТЬСЯ"
+    ),
+
+    // Заголовок
+    React.createElement(
+      'h2',
+      { className: "text-xl font-bold text-white mb-4 border-b border-gray-800 pb-2" },
+      "Telegram Центр TVA"
+    ),
+
+    // TVA BOT
+    React.createElement(
+      PixelCard,
+      { className: "border-blue-500/40 bg-blue-900/10" },
+      React.createElement(
+        'h3',
+        { className: "font-bold text-blue-300 text-sm uppercase mb-2" },
+        "TVA Bot — 7 дней бесплатной аналитики"
+      ),
+      React.createElement(
+        'ul',
+        { className: "text-xs text-gray-300 space-y-1 mb-3" },
+        React.createElement('li', null, "• Бесплатный доступ на 7 дней"),
+        React.createElement('li', null, "• Сигналы по Crypto / FX"),
+        React.createElement('li', null, "• Автоматическая статистика"),
+        React.createElement('li', null, "• Аналитика и уровни рынка"),
+      ),
+      React.createElement(
+        'button',
+        {
+          className: "w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-2 rounded border border-blue-400 transition",
+          onClick: () => window.open("https://t.me/TVAAcademy_Bot", "_blank") // ссылку вставишь позже
+        },
+        "Открыть TVA Bot"
+      )
+    ),
+
+    // TVAcademy
+    React.createElement(
+      PixelCard,
+      { className: "border-indigo-500/40 bg-indigo-900/10" },
+      React.createElement(
+        'h3',
+        { className: "font-bold text-indigo-300 text-sm uppercase mb-2" },
+        "TVAcademy — Основной канал"
+      ),
+      React.createElement(
+        'ul',
+        { className: "text-xs text-gray-300 space-y-1 mb-3" },
+        React.createElement('li', null, "• Все новости и обновления"),
+        React.createElement('li', null, "• Анонсы событий и важных изменений"),
+        React.createElement('li', null, "• Полезные материалы и разборы"),
+        React.createElement('li', null, "• Сообщество трейдеров TVA"),
+      ),
+      React.createElement(
+        'button',
+        {
+          className: "w-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold py-2 rounded border border-indigo-400 transition",
+          onClick: () => window.open("https://t.me/+sGlxGDyPdJZkNTAy", "_blank") // ссылка потом
+        },
+        "Открыть TVAcademy"
+      )
+    ),
+
+    // Поддержка
+    React.createElement(
+      PixelCard,
+      { className: "border-emerald-500/40 bg-emerald-900/10" },
+      React.createElement(
+        'h3',
+        { className: "font-bold text-emerald-300 text-sm uppercase mb-2" },
+        "Поддержка TVA"
+      ),
+      React.createElement(
+        'ul',
+        { className: "text-xs text-gray-300 space-y-1 mb-3" },
+        React.createElement('li', null, "• Ответим на любой вопрос"),
+        React.createElement('li', null, "• Поможем с покупкой подписки"),
+        React.createElement('li', null, "• Разберём проблемы в приложении"),
+        React.createElement('li', null, "• Время работы: 10:00–22:00 по МСК"),
+      ),
+      React.createElement(
+        'button',
+        {
+          className: "w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-2 rounded border border-emerald-400 transition",
+          onClick: () => window.open("https://t.me/ICik74", "_blank") // ссылка позже
+        },
+        "Написать в Поддержку"
+      )
+    ),
+  );
+};
+
+
+        const SetupForm = ({ onComplete }) => {
+  const [formData, setFormData] = useState({
+    goal: 'beginner',
+    wakeTimeTarget: '07:00',
+    sleepTimeTarget: '23:00',
+    sportPerDayTarget: 30,
+    readingPagesTarget: 10,
+    telegramNick: '', 
+  });
+
+          const handleChange = (field, value) => {
+            setFormData(prev => ({ ...prev, [field]: value }));
+          };
+
+          const handleSubmit = () => {
+            if (!formData.name) return console.error("Пожалуйста, введите имя, Трейдер.");
+            onComplete(formData);
+          };
+
+          return (
+            <PixelCard>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs uppercase text-gray-500 font-bold mb-1">Имя Трейдера</label>
+                  <input 
+                    type="text" 
+                    placeholder="Например, Сатоши"
+                    className="w-full bg-gray-900 border border-gray-700 text-white p-2 rounded focus:border-yellow-500 outline-none"
+                    onChange={(e) => handleChange('name', e.target.value)}
+                  />
+                </div>
+
+                <div>
+  <label className="block text-xs uppercase text-gray-500 font-bold mb-1">
+    Ник в Telegram
+  </label>
+  <input
+    type="text"
+    placeholder="@nickname"
+    className="w-full bg-gray-900 border border-gray-700 text-white p-2 rounded focus:border-yellow-500 outline-none"
+    onChange={(e) => handleChange('telegramNick', e.target.value)}
+  />
+  <p className="text-[10px] text-gray-500 mt-1">
+    Укажи свой @ник, чтобы наставники TVA могли найти тебя в деревне.
+  </p>
+</div>
+
+                <div>
+                  <label className="block text-xs uppercase text-gray-500 font-bold mb-1">Текущая Цель</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: 'beginner', label: 'Новичок' },
+                      { id: 'advanced', label: 'Опытный' },
+                      { id: 'pro', label: 'Профи' }
+                    ].map((g) => (
+                      <button
+                        key={g.id}
+                        onClick={() => handleChange('goal', g.id)}
+                        className={`p-2 text-xs uppercase font-bold border rounded transition-colors ${formData.goal === g.id ? 'bg-yellow-600 border-yellow-500 text-white' : 'bg-gray-800 border-gray-700 text-gray-400'}`}
+                      >
+                        {g.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs uppercase text-gray-500 font-bold mb-1">План Сна (Отбой)</label>
+                    <input type="time" value={formData.sleepTimeTarget} onChange={e => handleChange('sleepTimeTarget', e.target.value)} className="w-full bg-gray-900 border border-gray-700 text-white p-2 rounded" />
+                  </div>
+                  <div>
+                     <label className="block text-xs uppercase text-gray-500 font-bold mb-1">План Сна (Подъем)</label>
+                    <input type="time" value={formData.wakeTimeTarget} onChange={e => handleChange('wakeTimeTarget', e.target.value)} className="w-full bg-gray-900 border border-gray-700 text-white p-2 rounded" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs uppercase text-gray-500 font-bold mb-1">Спорт (Мин/День)</label>
+                  <input type="number" value={formData.sportPerDayTarget} onChange={e => handleChange('sportPerDayTarget', parseInt(e.target.value))} className="w-full bg-gray-900 border border-gray-700 text-white p-2 rounded" />
+                </div>
+
+                <div className="pt-4">
+                  <Button onClick={handleSubmit} variant="accent" className="w-full py-3">
+                     Войти в Деревню
+                  </Button>
+                </div>
+              </div>
+            </PixelCard>
+          );
+        };
+
+        // --- MAIN APP ---
+
+        function App() {
+          const [loading, setLoading] = useState(true);
+          const [profile, setProfile] = useState(null);
+          const [player, setPlayer] = useState(INITIAL_PLAYER_STATE);
+          const [tasks, setTasks] = useState([]);
+          const [showBalanceTestPrompt, setShowBalanceTestPrompt] = useState(false);
+          const [stats, setStats] = useState([]);
+          const [villageUpgrades, setVillageUpgrades] = useState(INITIAL_UPGRADES_STATE);
+          const [artifacts, setArtifacts] = useState([]); 
+          const [weeklyChallenge, setWeeklyChallenge] = useState(null);
+          
+          const [view, setView] = useState('setup'); // view: setup | village | shop | inventory | talents | stats | roadmap
+          const [selectedLocation, setSelectedLocation] = useState(null);
+          const [showLevelUp, setShowLevelUp] = useState(false);
+          const [lastGainedArtifact, setLastGainedArtifact] = useState(null); 
+          const [showChallengeComplete, setShowChallengeComplete] = useState(false);
+          const [message, setMessage] = useState(null); 
+          const viewKey = `${view}-${selectedLocation ? selectedLocation.id : 'none'}`;
+          const tg = window.Telegram?.WebApp;
+if (tg) {
+  tg.expand(); // растянуть мини-апп на всю высоту
+}
+
+          const goToView = (nextView) => {
+            setSelectedLocation(null);
+            setView(nextView);
+          };
+
+          const equippedArtifacts = useMemo(() => {
+            return artifacts.filter(a => player.equippedArtifactIds.includes(a.id));
+          }, [artifacts, player.equippedArtifactIds]);
+
+          const extraTaskSlots = useMemo(() => {
+            const fromTalents = Object.entries(player.unlockedTalents || {}).reduce((total, [id, level]) => {
+              const talent = TALENTS_DATA.find(t => t.id === id);
+              if (talent && talent.effect === 'extra_task_slot') {
+                return total + talent.baseValue * level;
+              }
+              return total;
+            }, 0);
+
+            const fromBuildings = player.buildingTaskSlots || 0;
+
+            const subBonuses = getSubscriptionBonuses(player.subscriptionTier || 'basic');
+            const fromSubscription = subBonuses.extraTaskSlots || 0;
+
+            const fromPremium = player.hasPremiumPass ? 3 : 0; // например, Premium Pass даёт +3
+
+            return fromTalents + fromBuildings + fromSubscription + fromPremium;
+          }, [player.unlockedTalents, player.buildingTaskSlots, player.subscriptionTier, player.hasPremiumPass]);
+
+          useEffect(() => {
+  const savedProfile   = localStorage.getItem(STORAGE_KEYS.PROFILE);
+  const savedPlayerStr = localStorage.getItem(STORAGE_KEYS.PLAYER);
+  const savedTasksStr  = localStorage.getItem(STORAGE_KEYS.TASKS);
+  const savedStatsStr  = localStorage.getItem(STORAGE_KEYS.STATS);
+  const savedUpgStr    = localStorage.getItem(STORAGE_KEYS.UPGRADES);
+  const savedArtStr    = localStorage.getItem(STORAGE_KEYS.ARTIFACTS);
+  const savedChallengeStr = localStorage.getItem(STORAGE_KEYS.CHALLENGE);
+
+  // --- профиль ---
+if (savedProfile) {
+  const loadedProfile = JSON.parse(savedProfile);
+  setProfile(loadedProfile);
+  setView('village');
+
+  if (!loadedProfile.balanceTestCompleted) {
+    setShowBalanceTestPrompt(true); // 👈 если ещё не проходил тест
+  }
+}
+
+  // --- игрок ---
+  let loadedPlayer = savedPlayerStr ? JSON.parse(savedPlayerStr) : INITIAL_PLAYER_STATE;
+
+  if (!loadedPlayer.unlockedTalents) loadedPlayer.unlockedTalents = {};
+  if (typeof loadedPlayer.buildingTaskSlots !== 'number') {
+    loadedPlayer.buildingTaskSlots = 0; // на всякий случай для старых сохранений
+  }
+
+  // 🔥 Фолбэки Premium / подписок для старых сохранений
+  if (typeof loadedPlayer.hasPremiumPass !== 'boolean') {
+    loadedPlayer.hasPremiumPass = false;
+  }
+  if (typeof loadedPlayer.subscriptionTier === 'undefined') {
+    loadedPlayer.subscriptionTier = null;
+  }
+
+  setPlayer(loadedPlayer);
+
+  // --- статистика / апгрейды / артефакты ---
+  if (savedStatsStr)  setStats(JSON.parse(savedStatsStr));
+  if (savedUpgStr)    setVillageUpgrades(JSON.parse(savedUpgStr));
+  if (savedArtStr)    setArtifacts(JSON.parse(savedArtStr));
+
+  const today = getTodayString();
+
+  // === ВАЖНО: считаем extraSlots из талантов + зданий + Premium ===
+  const loadedExtraSlotsFromTalents = Object.entries(loadedPlayer.unlockedTalents || {}).reduce(
+    (total, [id, level]) => {
+      const talent = TALENTS_DATA.find(t => t.id === id);
+      if (talent && talent.effect === 'extra_task_slot') {
+        return total + talent.baseValue * level;
+      }
+      return total;
+    },
+    0
+  );
+
+  const loadedExtraSlotsFromBuildings = loadedPlayer.buildingTaskSlots || 0;
+
+  const subBonusesOnLoad = getSubscriptionBonuses(loadedPlayer.subscriptionTier || 'basic');
+  const loadedExtraSlotsFromSub = subBonusesOnLoad.extraTaskSlots || 0;
+
+  const loadedExtraSlotsFromPremium = loadedPlayer.hasPremiumPass ? 3 : 0;
+
+  const loadedExtraSlots =
+    loadedExtraSlotsFromTalents +
+    loadedExtraSlotsFromBuildings +
+    loadedExtraSlotsFromSub +
+    loadedExtraSlotsFromPremium;
+
+  // --- задачи на сегодня ---
+  let currentTasks = [];
+  if (savedTasksStr) {
+    const allTasks = JSON.parse(savedTasksStr);
+    if (allTasks[today]) {
+      currentTasks = allTasks[today];
+    } else {
+      currentTasks = generateDailyTasks(today, loadedExtraSlots);
+    }
+  } else {
+    currentTasks = generateDailyTasks(today, loadedExtraSlots);
+  }
+  setTasks(currentTasks);
+
+  // --- недельный челлендж ---
+  let challenge;
+  if (savedChallengeStr) {
+    const loadedChallenge = JSON.parse(savedChallengeStr);
+    if (getWeekId() === getWeekId(loadedChallenge.startDate)) {
+      challenge = loadedChallenge;
+      if (challenge.isCompleted && !challenge.isClaimed) {
+        setShowChallengeComplete(true);
+      }
+    } else {
+      challenge = generateWeeklyChallenge(today);
+    }
+  } else {
+    challenge = generateWeeklyChallenge(today);
+  }
+  setWeeklyChallenge(challenge);
+
+  setLoading(false);
+}, []);
+
+          useEffect(() => {
+            if (loading) return;
+            localStorage.setItem(STORAGE_KEYS.PLAYER, JSON.stringify(player));
+            localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(profile));
+            localStorage.setItem(STORAGE_KEYS.STATS, JSON.stringify(stats));
+            localStorage.setItem(STORAGE_KEYS.UPGRADES, JSON.stringify(villageUpgrades));
+            localStorage.setItem(STORAGE_KEYS.ARTIFACTS, JSON.stringify(artifacts)); 
+            localStorage.setItem(STORAGE_KEYS.CHALLENGE, JSON.stringify(weeklyChallenge));
+            
+            const today = getTodayString();
+            const existingTasks = JSON.parse(localStorage.getItem(STORAGE_KEYS.TASKS) || '{}');
+            existingTasks[today] = tasks;
+            localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(existingTasks));
+          }, [player, profile, tasks, stats, villageUpgrades, artifacts, weeklyChallenge, loading]);
+
+          const handleToggleEquip = (artifact) => {
+            if (!artifact.isEquippable) return;
+
+            setPlayer(prevPlayer => {
+              const isEquipped = prevPlayer.equippedArtifactIds.includes(artifact.id);
+              let newEquippedIds = [...prevPlayer.equippedArtifactIds];
+
+              const maxSlots = calculateMaxEquipSlots(prevPlayer);
+
+              if (isEquipped) {
+                newEquippedIds = newEquippedIds.filter(id => id !== artifact.id);
+              } else {
+                if (newEquippedIds.length >= maxSlots) {
+                  setMessage({
+                    text: `Нельзя экипировать более ${maxSlots} Артефактов одновременно! (увеличь подписку или активируй Premium Pass)`,
+                    type: 'error'
+                  });
+                  setTimeout(() => setMessage(null), 3000);
+                  return prevPlayer;
+                }
+                newEquippedIds.push(artifact.id);
+              }
+
+              return { ...prevPlayer, equippedArtifactIds: newEquippedIds };
+            });
+          };
+
+          const handleCreateProfile = (newProfile) => {
+  const profileWithMeta = {
+    ...newProfile,
+    balanceTestCompleted: false,   // ещё не проходил тест
+    balanceScores: null,          // сюда положим результат колеса
+  };
+
+  setProfile(profileWithMeta);
+  setView('village');
+  setShowBalanceTestPrompt(true); // 👈 покажем памятку пройти тест
+};
+
+          const handleCompleteTask = (taskId) => {
+            const taskIndex = tasks.findIndex(t => t.id === taskId);
+            if (taskIndex === -1 || tasks[taskIndex].completed) return;
+
+            const task = tasks[taskIndex];
+            const newTasks = [...tasks];
+            newTasks[taskIndex].completed = true;
+            newTasks[taskIndex].completedAt = new Date().toISOString();
+            setTasks(newTasks);
+
+            let expGain = task.exp;
+            let goldGain = expGain * 2;
+            
+            const talentExpBoost = Object.entries(player.unlockedTalents).reduce((total, [id, level]) => {
+              const talent = TALENTS_DATA.find(t => t.id === id);
+              if (talent && talent.effect === 'exp_boost') {
+                  return total + talent.baseValue * level;
+              }
+              return total;
+            }, 0);
+            expGain = Math.round(expGain * (1 + talentExpBoost));
+
+            const talentGoldBoost = Object.entries(player.unlockedTalents).reduce((total, [id, level]) => {
+              const talent = TALENTS_DATA.find(t => t.id === id);
+              if (talent && talent.effect === 'gold_boost') {
+                  return total + talent.baseValue * level;
+              }
+              return total;
+            }, 0);
+            goldGain = Math.round(goldGain * (1 + talentGoldBoost));
+            const subBonuses = getSubscriptionBonuses(player.subscriptionTier || 'basic');
+            const subGoldMult = subBonuses.goldMultiplier || 1.0;
+            goldGain = Math.round(goldGain * subGoldMult);
+
+            equippedArtifacts.forEach(artifact => {
+                if (artifact.effectType === 'exp_multiplier' && 
+                   (artifact.targetCategory === 'all' || artifact.targetCategory === task.category)
+                ) {
+                    expGain = Math.round(expGain * (artifact.effectValue - 1) + expGain); 
+                }
+                if (artifact.effectType === 'gold_multiplier' && artifact.targetCategory === 'all') {
+                    goldGain = Math.round(goldGain * (artifact.effectValue - 1) + goldGain);
+                }
+            });
+
+            const { newLevel, newExp, newNeeded, leveledUp } = calculateLevel(player.level, player.currentExp + expGain, player.expToNextLevel);
+
+            setPlayer(prev => ({
+              ...prev,
+              level: newLevel,
+              currentExp: newExp,
+              expToNextLevel: newNeeded,
+              totalExp: prev.totalExp + expGain,
+              gold: prev.gold + goldGain,
+            }));
+
+            if (leveledUp) {
+              const newArtifact = generateRandomArtifact();
+              setArtifacts(prev => [...prev, newArtifact]);
+              setLastGainedArtifact(newArtifact);
+              setShowLevelUp(true);
+            }
+            
+            if (weeklyChallenge && !weeklyChallenge.isCompleted && task.category === weeklyChallenge.targetCategory) {
+                setWeeklyChallenge(prev => {
+                    if (!prev) return null;
+                    const newProgress = prev.currentProgress + 1;
+                    const isCompleted = newProgress >= prev.requiredCompletions;
+                    
+                    if (isCompleted) {
+                        setShowChallengeComplete(true);
+                    }
+
+                    return { 
+                        ...prev, 
+                        currentProgress: newProgress,
+                        isCompleted: isCompleted,
+                    };
+                });
+            }
+
+            const today = getTodayString();
+const statsIdx = stats.findIndex(s => s.date === today);
+let newStats = [...stats];
+
+if (statsIdx === -1) {
+  newStats.push({
+    date: today,
+    tasksCompleted: 1,
+    expGained: expGain,
+
+    // Уже были:
+    sportMinutes: task.category === 'sport' ? task.value : 0,
+    pagesRead: task.category === 'learning' && task.unit === 'pages' ? task.value : 0,
+    videosWatched: task.category === 'learning' && task.unit === 'video' ? task.value : 0,
+    chartSessions: task.category === 'charts' ? 1 : 0,
+
+    // Новые поля:
+    sleepTasks: task.category === 'sleep' ? 1 : 0,
+    learningTasks: task.category === 'learning' ? 1 : 0,
+    researchTasks: task.category === 'research' ? 1 : 0,
+    planningTasks: task.category === 'planning' ? 1 : 0,
+  });
+} else {
+  const dayStat = newStats[statsIdx];
+  newStats[statsIdx] = {
+    ...dayStat,
+    tasksCompleted: dayStat.tasksCompleted + 1,
+    expGained: dayStat.expGained + expGain,
+
+    sportMinutes:
+      task.category === 'sport'
+        ? dayStat.sportMinutes + task.value
+        : dayStat.sportMinutes,
+
+    pagesRead:
+      task.category === 'learning' && task.unit === 'pages'
+        ? dayStat.pagesRead + task.value
+        : dayStat.pagesRead,
+
+    videosWatched:
+      task.category === 'learning' && task.unit === 'video'
+        ? dayStat.videosWatched + task.value
+        : dayStat.videosWatched,
+
+    chartSessions:
+      task.category === 'charts'
+        ? dayStat.chartSessions + 1
+        : dayStat.chartSessions,
+
+    // Новые поля с накоплением:
+    sleepTasks:
+      task.category === 'sleep'
+        ? (dayStat.sleepTasks || 0) + 1
+        : (dayStat.sleepTasks || 0),
+
+    learningTasks:
+      task.category === 'learning'
+        ? (dayStat.learningTasks || 0) + 1
+        : (dayStat.learningTasks || 0),
+
+    researchTasks:
+      task.category === 'research'
+        ? (dayStat.researchTasks || 0) + 1
+        : (dayStat.researchTasks || 0),
+
+    planningTasks:
+      task.category === 'planning'
+        ? (dayStat.planningTasks || 0) + 1
+        : (dayStat.planningTasks || 0),
+  };
+}
+
+setStats(newStats);
+
+            const bonusExp = expGain - task.exp;
+            const bonusGold = goldGain - (task.exp * 2);
+
+            let messageText = `Задача выполнена! +${task.exp} EXP (+${task.exp * 2} 🪙).`;
+            if (bonusExp > 0 || bonusGold > 0) {
+                messageText += ` Бонус: +${bonusExp} EXP (+${bonusGold} 🪙).`;
+            }
+
+            setMessage({ text: messageText, type: 'success' });
+            setTimeout(() => setMessage(null), 3000);
+          };
+
+          const handleUpgrade = (locationId, cost) => {
+            if (player.gold < cost) {
+                setMessage({ text: "Не хватает золота для улучшения! Выполняй больше задач.", type: 'error' });
+                setTimeout(() => setMessage(null), 3000);
+                return;
+            }
+
+            setPlayer(prev => ({ ...prev, gold: prev.gold - cost }));
+            setVillageUpgrades(prev => ({ ...prev, [locationId]: (prev[locationId] || 1) + 1 }));
+            
+            setMessage({ text: "Улучшение успешно! Твоя деревня стала круче!", type: 'success' });
+            setTimeout(() => setMessage(null), 3000);
+          };
+
+          const handleSaveProfileSettings = (updatedProfile, goldCost) => {
+  if (player.gold < goldCost) {
+    setMessage({ text: `Не хватает золота! Нужно ${goldCost} 🪙`, type: 'error' });
+    setTimeout(() => setMessage(null), 3000);
+    return;
+  }
+
+  setPlayer((prev) => ({
+    ...prev,
+    gold: prev.gold - goldCost,
+  }));
+  setProfile(updatedProfile);
+
+  setMessage({ text: 'Профиль обновлён!', type: 'success' });
+  setTimeout(() => setMessage(null), 3000);
+
+  goToView('village');
+};
+
+          const handleBuyBuilding = () => {
+  const currentBuildings = player.buildingTaskSlots || 0;
+  const maxBuildings = 5; // например, максимум 5 зданий
+
+  if (currentBuildings >= maxBuildings) {
+    setMessage({
+      text: "Достигнут максимум зданий. Деревня не выдержит больше строек!",
+      type: 'error'
+    });
+    setTimeout(() => setMessage(null), 3000);
+    return;
+  }
+
+  // формула цены: каждое следующее здание дороже
+  const nextCost = 1500 * (currentBuildings + 1);
+
+  if (player.gold < nextCost) {
+    setMessage({
+      text: `Не хватает золота! Нужно ${nextCost} 🪙`,
+      type: 'error'
+    });
+    setTimeout(() => setMessage(null), 3000);
+    return;
+  }
+
+  setPlayer(prev => ({
+    ...prev,
+    gold: prev.gold - nextCost,
+    buildingTaskSlots: (prev.buildingTaskSlots || 0) + 1
+  }));
+
+  setMessage({
+    text: `Построено новое здание! Теперь у тебя +1 доп. задание в день (всего: ${currentBuildings + 1}).`,
+    type: 'success'
+  });
+  setTimeout(() => setMessage(null), 3000);
+};
+          
+          const handleUnlockTalent = (talentId, currentLevel) => {
+            const talentData = TALENTS_DATA.find(t => t.id === talentId);
+            if (!talentData) return;
+
+            const nextLevel = currentLevel + 1;
+            if (nextLevel > talentData.maxLevel) {
+                setMessage({ text: "Талант уже максимально улучшен!", type: 'error' });
+                return;
+            }
+
+            if (talentData.prereqTalentId && (player.unlockedTalents[talentData.prereqTalentId] || 0) < 1) {
+                const prereqName = TALENTS_DATA.find(t => t.id === talentData.prereqTalentId)?.name || 'Предыдущий Талант';
+                setMessage({ text: `Сначала нужно изучить: "${prereqName}"`, type: 'error' });
+                return;
+            }
+
+            const cost = talentData.cost * nextLevel;
+            if (player.gold < cost) {
+                setMessage({ text: `Не хватает золота! Нужно ${cost} 🪙`, type: 'error' });
+                return;
+            }
+
+            setPlayer(prev => ({ 
+                ...prev, 
+                gold: prev.gold - cost,
+                unlockedTalents: {
+                    ...prev.unlockedTalents,
+                    [talentId]: nextLevel,
+                }
+            }));
+            setMessage({ text: `Талант "${talentData.name}" улучшен до ур. ${nextLevel}!`, type: 'success' });
+            setTimeout(() => setMessage(null), 3000);
+          };
+
+          // 🔹 новый хендлер комментариев
+  const handleUpdateTaskComment = (taskId, comment) => {
+    setTasks(prevTasks =>
+      prevTasks.map(t =>
+        t.id === taskId ? { ...t, comment } : t
+      )
+    );
+  };
+
+          const handleClaimChallenge = () => {
+              if (!weeklyChallenge || !weeklyChallenge.isCompleted || weeklyChallenge.isClaimed) return;
+
+              setPlayer(prev => ({
+                  ...prev,
+                  gold: prev.gold + weeklyChallenge.goldReward,
+                  totalExp: prev.totalExp + weeklyChallenge.expReward,
+              }));
+
+              setWeeklyChallenge(prev => prev ? { ...prev, isClaimed: true } : null);
+              setShowChallengeComplete(false);
+              setMessage({ text: `Испытание завершено! Получено +${weeklyChallenge.expReward} EXP и ${weeklyChallenge.goldReward} 🪙`, type: 'success' });
+              setTimeout(() => setMessage(null), 5000);
+          }
+
+          //  Активировать Premium Pass
+const handleActivatePremium = () => {
+  if (player.hasPremiumPass) {
+    setMessage({
+      text: "Premium Pass уже активирован!",
+      type: 'success'
+    });
+    setTimeout(() => setMessage(null), 3000);
+    return;
+  }
+
+  setPlayer(prev => ({
+    ...prev,
+    hasPremiumPass: true,
+  }));
+
+  setMessage({
+    text: "Premium Pass активирован! Теперь у тебя +3 доп. задания ежедневно.",
+    type: 'success'
+  });
+  setTimeout(() => setMessage(null), 3000);
+};
+
+//  Выбрать / изменить уровень подписки
+          const handleSetSubscriptionTier = (tier) => {
+            // если уже выбран этот же tier — просто покажем сообщение
+            if (player.subscriptionTier === tier) {
+              setMessage({
+                text: `Подписка ${tier.toUpperCase()} уже активна.`,
+                type: 'success'
+              });
+              setTimeout(() => setMessage(null), 3000);
+              return;
+            }
+
+            setPlayer(prev => ({
+              ...prev,
+              subscriptionTier: tier,
+            }));
+
+            setMessage({
+              text: `Подписка ${tier.toUpperCase()} выбрана (демо-режим).`,
+              type: 'success'
+            });
+            setTimeout(() => setMessage(null), 3000);
+          };
+
+          if (loading) return React.createElement('div', { className: "min-h-screen bg-[#0b0f1a] text-white flex items-center justify-center font-mono" }, "Загрузка Деревни...");
+
+          return React.createElement('div', { className: "min-h-screen bg-[#0b0f1a] text-gray-200 font-mono selection:bg-yellow-500 selection:text-black" },
+            
+            profile && React.createElement('header', { className: "sticky top-0 z-30 bg-[#0b0f1a]/90 backdrop-blur-sm border-b border-gray-800 p-3 shadow-md" },
+              React.createElement('div', { className: "max-w-md mx-auto flex items-center justify-between" },
+                React.createElement('div', { className: "flex items-center gap-2", onClick: () => goToView('village') },
+                  React.createElement('div', { className: "w-8 h-8 bg-yellow-600 rounded flex items-center justify-center border border-yellow-400 cursor-pointer" },
+                    React.createElement('span', { className: "text-xl" }, "🏰")
+                  ),
+                  React.createElement('div', { className: "leading-none" },
+                    React.createElement('h1', { className: "font-bold text-yellow-500 text-sm tracking-wider" }, "TVA"),
+                    React.createElement('span', { className: "text-[10px] text-gray-400" }, "TRADING VILLAGE ACADEMY")
+                  )
+                ),
+
+                React.createElement('div', { className: "flex items-center gap-3" },
+                   weeklyChallenge && React.createElement('button', 
+                      {
+                        onClick: () => setShowChallengeComplete(true),
+                        className: `p-1.5 rounded transition-all border ${weeklyChallenge.isCompleted && !weeklyChallenge.isClaimed ? 'bg-red-700 border-red-400 animate-pulse' : 'bg-gray-800 border-gray-700'}`
+                      },
+                     React.createElement(Calendar, { size: 18, className: weeklyChallenge.isCompleted && !weeklyChallenge.isClaimed ? 'text-white' : 'text-gray-400' })
+                   ),
+
+                   React.createElement('div', { className: "flex -space-x-1" },
+                     Array.from({ length: 3 }).map((_, index) => 
+                        React.createElement('div', {
+                            key: index, 
+                            className: `w-5 h-5 rounded-full flex items-center justify-center text-xs border-2 ${
+                                equippedArtifacts[index] 
+                                    ? 'bg-yellow-800 border-yellow-500 shadow-lg' 
+                                    : 'bg-gray-800 border-gray-700 opacity-50'
+                            }`,
+                            onClick: () => { setSelectedLocation(null); setView('inventory'); }
+                        }, equippedArtifacts[index] ? equippedArtifacts[index].visual : '—')
+                     )
+                   ),
+
+                   React.createElement('div', { className: "flex items-center gap-1 bg-gray-800 p-1.5 rounded-full text-yellow-400 border border-gray-700" },
+                       React.createElement(Gem, { size: 14, className: "text-yellow-500" }),
+                       React.createElement('span', { className: "text-xs font-bold mr-1" }, player.gold)
+                   ),
+
+                   React.createElement('div', { className: "text-right" },
+                      React.createElement('div', { className: "text-xs text-yellow-500 font-bold" }, `УР ${player.level}`),
+                      React.createElement('div', { className: "w-24" },
+                        React.createElement(ProgressBar, { current: player.currentExp, max: player.expToNextLevel })
+                      )
+                   ),
+                   React.createElement(
+  'button',
+  {
+    onClick: () => goToView('roadmap'),
+    className: "p-2 hover:bg-gray-800 rounded transition-colors"
+  },
+  React.createElement(FileText, { size: 20, className: "text-gray-400" })
+)
+                )
+              )
+            ),
+
+            React.createElement('main',{ className: "max-w-md mx-auto p-4 pb-24" },
+
+            React.createElement(MotivationFooter, null),
+
+            
+
+  // --- экран входа ---
+  !profile && React.createElement(
+    'div',
+    { className: "animate-in fade-in slide-in-from-bottom-4 duration-700" },
+    React.createElement(
+      'div',
+      { className: "text-center mb-8 pt-10" },
+      React.createElement(
+        'h1',
+        { className: "text-3xl font-bold text-yellow-500 mb-2" },
+        "ДОБРО ПОЖАЛОВАТЬ"
+      ),
+      React.createElement(
+        'p',
+        { className: "text-gray-400 text-sm" },
+        "Создай профиль, чтобы войти в Академию."
+      )
+    ),
+    React.createElement(SetupForm, { onComplete: handleCreateProfile })
+  ),
+
+  // --- главная карта деревни ---
+  profile && view === 'village' && !selectedLocation && React.createElement(
+    'div',
+    { className: "space-y-6 animate-in fade-in duration-500" },
+
+    React.createElement(
+      PixelCard,
+      { className: "bg-gradient-to-r from-gray-900 to-gray-800 border-yellow-900/50" },
+      React.createElement(
+        'div',
+        { className: "flex justify-between items-center mb-2" },
+        React.createElement(
+  'div',
+  {
+    className: "flex items-center gap-2 cursor-pointer",
+    onClick: () => goToView('profile_edit')
+  },
+  React.createElement(
+    'div',
+    { className: "bg-yellow-500/10 p-1.5 rounded text-yellow-500" },
+    React.createElement(User, { size: 16 })
+  ),
+  React.createElement(
+    'span',
+    { className: "font-bold text-white" },
+    profile.name
+  )
+),
+
+// === Кнопка "Колесо Баланса" ===
+profile.balanceTestCompleted &&
+React.createElement(
+  'button',
+  {
+    onClick: () => goToView('balance_results'),
+    className:
+  "w-auto px-3 mt-2 bg-indigo-600 hover:bg-indigo-500 text-white text-[9px] uppercase font-semibold py-1 rounded-full border border-indigo-400 transition-colors flex items-center gap-1"
+  },
+  React.createElement(Target, { size: 12 }),
+  "Открыть Колесо Баланса"
+),
+
+        React.createElement('span', {
+  onClick: () => goToView('stats'),
+  className:
+    "text-xs bg-gray-700 px-2 py-1 rounded text-yellow-400 uppercase cursor-pointer " +
+    "hover:bg-yellow-500 hover:text-black transition-all border border-yellow-600"
+},
+  "📊 ",
+  profile.goal === 'beginner' ? 'Новичок'
+  : profile.goal === 'advanced' ? 'Опытный'
+  : 'Профи'
+)
+      ),
+
+      (player.hasPremiumPass || player.subscriptionTier) && React.createElement(
+    'div',
+    { className: "flex items-center gap-2 mb-2 text-[10px]" },
+
+    // Бейдж Premium
+    player.hasPremiumPass && React.createElement(
+      'span',
+      {
+        className:
+          "inline-flex items-center gap-1 px-2 py-1 rounded-full " +
+          "bg-yellow-500/15 border border-yellow-500/60 text-yellow-300 font-bold uppercase tracking-widest"
+      },
+      React.createElement(Crown, { size: 12, className: "text-yellow-300" }),
+      'Premium Pass'
+    ),
+    
+
+    // Подписка (если выбрана)
+    player.subscriptionTier && React.createElement(
+      'span',
+      {
+        className:
+          "inline-flex items-center gap-1 px-2 py-1 rounded-full " +
+          "bg-indigo-500/10 border border-indigo-500/60 text-indigo-200 uppercase"
+      },
+      'Sub: ',
+      player.subscriptionTier === 'basic'
+        ? 'Basic'
+        : player.subscriptionTier === 'advanced'
+          ? 'Advanced'
+          : 'Pro'
+    )
+  ),
+
+      React.createElement(
+        'div',
+        { className: "grid grid-cols-3 gap-2 mt-4 text-xs" },
+        React.createElement(
+          'div',
+          { className: "bg-[#0b0f1a] p-2 rounded border border-gray-800" },
+          React.createElement(
+            'span',
+            { className: "block text-gray-500 mb-1" },
+            "Всего опыта"
+          ),
+          React.createElement(
+            'span',
+            { className: "text-lg font-bold text-yellow-400" },
+            player.totalExp
+          )
+        ),
+        React.createElement(
+          'div',
+          { className: "bg-[#0b0f1a] p-2 rounded border border-gray-800" },
+          React.createElement(
+            'span',
+            { className: "block text-gray-500 mb-1" },
+            "Талантов"
+          ),
+          React.createElement(
+            'span',
+            { className: "text-lg font-bold text-purple-400 flex items-center gap-1" },
+            React.createElement(Star, { size: 18 }),
+            Object.keys(player.unlockedTalents).length
+          )
+        ),
+        
+        React.createElement(
+          'div',
+          {
+            className:
+              "bg-[#0b0f1a] p-2 rounded border border-gray-800 cursor-pointer hover:border-yellow-500",
+            onClick: () => goToView('inventory')
+          },
+          React.createElement(
+            'span',
+            { className: "block text-gray-500 mb-1" },
+            "Артефакты"
+          ),
+          React.createElement(
+            'span',
+            { className: "text-lg font-bold text-blue-400 flex items-center gap-1" },
+            React.createElement(Pocket, { size: 18 }),
+            artifacts.length
+          )
+        )
+      ),
+
+      React.createElement(
+  'div',
+  { className: "grid grid-cols-2 gap-2 mt-4" },
+
+  // 1 ряд: Магазин | Premium Pass
+  React.createElement(
+    'button',
+    {
+      onClick: () => goToView('shop'),
+      className: "bg-orange-500 hover:bg-orange-400 text-white text-xs uppercase font-bold py-2 rounded border border-orange-300 transition-colors"
+    },
+    "МАГАЗИН"
+  ),
+
+  React.createElement(
+    'button',
+    {
+      onClick: () => goToView('premium'),
+      className: "bg-yellow-500 hover:bg-yellow-400 text-black text-xs uppercase font-bold py-2 rounded border border-yellow-300 transition-colors"
+    },
+    "PREMIUM PASS"
+  ),
+
+  // 2 ряд: Таланты | Инвентарь
+  React.createElement(
+    'button',
+    {
+      onClick: () => goToView('talents'),
+      className: "bg-blue-700 hover:bg-blue-600 text-white text-xs uppercase font-bold py-2 rounded border border-blue-400 transition-colors"
+    },
+    "ТАЛАНТЫ"
+  ),
+
+  React.createElement(
+    'button',
+    {
+      onClick: () => goToView('inventory'),
+      className: "bg-gray-800 hover:bg-gray-700 text-white text-xs uppercase font-bold py-2 rounded border border-gray-500 transition-colors"
+    },
+    "ИНВЕНТАРЬ"
+  ),
+
+  // 3 ряд: Telegram | Roadmap
+  React.createElement(
+    'button',
+    {
+      onClick: () => goToView('telegram_hub'),
+      className: "bg-blue-600 hover:bg-blue-500 text-white text-xs uppercase font-bold py-2 rounded border border-blue-400 transition-colors"
+    },
+    "TELEGRAM"
+  ),
+
+  React.createElement(
+    'button',
+    {
+      onClick: () => goToView('roadmap'),
+      className: "bg-gray-900 hover:bg-gray-800 text-white text-xs uppercase font-bold py-2 rounded border border-gray-600 transition-colors"
+    },
+    "ROADMAP"
+  ),
+),
+    ),
+
+    React.createElement(
+      'div',
+      { className: "grid grid-cols-1 gap-4" },
+      React.createElement(
+        'h2',
+        { className: "text-xs uppercase tracking-[0.2em] text-gray-500 font-bold ml-1" },
+        "Карта Деревни"
+      ),
+      LOCATIONS.map((loc) => {
+        const todayTasks = tasks.filter(t => t.id.includes(loc.id));
+        const completedCount = todayTasks.filter(t => t.completed).length;
+        const isComplete = todayTasks.length > 0 && completedCount === todayTasks.length;
+        const currentVisual =
+          (getCurrentUpgrade(loc.id, villageUpgrades[loc.id] || 1) || {}).visual || '❓';
+
+        return React.createElement(
+          PixelCard,
+          {
+            key: loc.id,
+            onClick: () => setSelectedLocation(loc),
+            className: "group"
+          },
+          React.createElement(
+            'div',
+            { className: "flex items-center gap-4" },
+            React.createElement(
+              'div',
+              {
+                className:
+                  `w-12 h-12 rounded-lg bg-[#0b0f1a] border-2 border-gray-700 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 ${loc.color}`
+              },
+              React.createElement('span', { className: "text-2xl" }, currentVisual)
+            ),
+            React.createElement(
+              'div',
+              { className: "flex-1" },
+              React.createElement(
+                'div',
+                { className: "flex justify-between items-start" },
+                React.createElement(
+                  'h3',
+                  { className: "font-bold text-gray-200" },
+                  loc.tvaName
+                ),
+                isComplete &&
+                  React.createElement(
+                    'span',
+                    { className: "text-emerald-500 text-xs font-bold flex items-center gap-1" },
+                    React.createElement(CheckSquare, { size: 12 }),
+                    " ГОТОВО"
+                  )
+              ),
+              React.createElement(
+                'p',
+                { className: "text-xs text-gray-500 mb-2" },
+                loc.name
+              ),
+              React.createElement(
+                'div',
+                { className: "h-1.5 bg-gray-800 rounded-full overflow-hidden" },
+                React.createElement('div', {
+                  className:
+                    `h-full transition-all duration-500 ${isComplete ? 'bg-emerald-500' : 'bg-yellow-600'}`,
+                  style: {
+                    width: `${(completedCount / (todayTasks.length || 1)) * 100}%`
+                  }
+                })
+              )
+            ),
+            React.createElement(
+              ChevronRight,
+              { className: "text-gray-700 group-hover:text-yellow-500 transition-colors" }
+            )
+          )
+        );
+      })
+    )
+  ),
+
+  // --- экран выбранной локации + задачи ---
+  selectedLocation && React.createElement(
+    'div',
+    { className: "space-y-4 animate-in slide-in-from-right-8 duration-300" },
+
+    React.createElement(
+      'button',
+      {
+        onClick: () => setSelectedLocation(null),
+        className: "text-xs text-gray-400 hover:text-white flex items-center gap-1 mb-2"
+      },
+      React.createElement(MapIcon, { size: 12 }),
+      " ВЕРНУТЬСЯ В ДЕРЕВНЮ"
+    ),
+
+    React.createElement(
+      PixelCard,
+      { className: "border-yellow-500/30" },
+      React.createElement(
+        'div',
+        { className: "flex items-center gap-4 mb-4" },
+        React.createElement(
+          'div',
+          {
+            className:
+              `p-3 bg-gray-900 rounded-lg border border-gray-700 ${selectedLocation.color}`
+          },
+          React.createElement(selectedLocation.icon, { size: 32 })
+        ),
+        React.createElement(
+          'div',
+          null,
+          React.createElement(
+            'h2',
+            { className: "text-xl font-bold text-white" },
+            selectedLocation.tvaName
+          ),
+          React.createElement(
+            'p',
+            { className: "text-xs text-gray-400" },
+            selectedLocation.description
+          )
+        )
+      )
+    ),
+
+    React.createElement(
+      'div',
+      { className: "space-y-3" },
+      React.createElement(
+        'h3',
+        { className: "text-xs uppercase tracking-widest text-gray-500 font-bold ml-1" },
+        "Задачи на сегодня"
+      ),
+      tasks
+        .filter(t => t.id.includes(selectedLocation.id) || t.id.includes('bonus'))
+        .map(task =>
+          React.createElement(
+            'div',
+            {
+              key: task.id,
+              className:
+                `relative p-4 rounded-lg border-2 transition-all duration-300 ${
+                  task.completed
+                    ? 'bg-emerald-900/10 border-emerald-900/30 opacity-70'
+                    : 'bg-[#151a25] border-[#2a3441] hover:border-gray-500'
+                }`
+            },
+
+            // верхний блок
+            React.createElement(
+              'div',
+              { className: "flex justify-between items-start" },
+
+              React.createElement(
+                'div',
+                { className: "flex-1" },
+                React.createElement(
+                  'h4',
+                  {
+                    className:
+                      `font-bold text-sm ${
+                        task.completed ? 'text-gray-400 line-through' : 'text-gray-200'
+                      }`
+                  },
+                  task.title
+                ),
+                React.createElement(
+                  'p',
+                  { className: "text-xs text-gray-500 mt-1" },
+                  task.description
+                ),
+                React.createElement(
+                  'div',
+                  { className: "flex items-center gap-2 mt-2" },
+                  React.createElement(
+                    'span',
+                    {
+                      className:
+                        "inline-block text-[10px] font-bold text-yellow-600 bg-yellow-900/20 px-1.5 py-0.5 rounded border border-yellow-900/30"
+                    },
+                    `+${task.exp} EXP`
+                  ),
+                  React.createElement(
+                    'span',
+                    {
+                      className:
+                        "inline-block text-[10px] font-bold text-yellow-600 bg-yellow-900/20 px-1.5 py-0.5 rounded border border-yellow-900/30"
+                    },
+                    `+${task.exp * 2} 🪙`
+                  )
+                )
+              ),
+
+              React.createElement(
+                'button',
+                {
+                  onClick: () => handleCompleteTask(task.id),
+                  disabled: task.completed,
+                  className:
+                    `w-10 h-10 rounded flex items-center justify-center border-b-4 transition-all ` +
+                    (task.completed
+                      ? 'bg-emerald-600 border-emerald-800 text-white cursor-default translate-y-1 border-b-0'
+                      : 'bg-gray-700 border-gray-900 text-gray-400 hover:bg-yellow-600 hover:border-yellow-800 hover:text-white active:translate-y-1 active:border-b-0')
+                },
+                task.completed
+                  ? React.createElement(CheckSquare, { size: 20 })
+                  : React.createElement('div', {
+                      className: "w-4 h-4 border-2 border-current rounded-sm"
+                    })
+              )
+            ),
+
+            // нижний блок: комментарий после выполнения
+            task.completed &&
+              React.createElement(
+                'div',
+                { className: "mt-3" },
+                React.createElement(
+                  'label',
+                  {
+                    className:
+                      "block text-[10px] uppercase text-gray-500 font-bold mb-1"
+                  },
+                  "Комментарий (что сделал?)"
+                ),
+                React.createElement('textarea', {
+                  className:
+                    "w-full bg-gray-900 border border-gray-700 text-xs text-gray-200 p-2 rounded resize-y focus:border-yellow-500 outline-none",
+                  rows: 2,
+                  placeholder:
+                    "Например: разобрал BTC, зафиксировал ошибку во входе...",
+                  value: task.comment || '',
+                  onChange: (e) => handleUpdateTaskComment(task.id, e.target.value)
+                })
+              )
+          )
+        )
+    )
+  ),
+
+  // === ПАМЯТКА ПРОЙТИ ТЕСТ «КОЛЕСО БАЛАНСА» ===
+  profile && showBalanceTestPrompt && !profile.balanceTestCompleted && view === 'village' &&
+    React.createElement(
+      'div',
+      { className: "fixed inset-0 z-40 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" },
+      React.createElement(
+        'div',
+        { className: "bg-[#111827] border border-yellow-500/50 rounded-xl p-6 max-w-sm w-full shadow-2xl" },
+        React.createElement(
+          'h2',
+          { className: "text-lg font-bold text-yellow-400 mb-2" },
+          'Пройди тест «Колесо Баланса»'
+        ),
+        React.createElement(
+          'p',
+          { className: "text-xs text-gray-300 mb-4" },
+          'Чтобы улучшить свои навыки и понять, в каком направлении расти в первую очередь — ',
+          'пройди небольшой тест по Колесу Баланса. По результатам ты получишь подсказки, ',
+          'какие сферы усилить, чтобы быстрее прийти к успеху.'
+        ),
+        React.createElement(
+          'div',
+          { className: "space-y-2" },
+          React.createElement(
+            'button',
+            {
+              onClick: () => {
+                setShowBalanceTestPrompt(false);
+                goToView('balance_test');
+              },
+              className: "w-full bg-yellow-500 hover:bg-yellow-400 text-black font-bold text-xs uppercase py-2 rounded transition-colors"
+            },
+            'Пройти тест сейчас'
+          ),
+          React.createElement(
+            'button',
+            {
+              onClick: () => setShowBalanceTestPrompt(false),
+              className: "w-full bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs uppercase py-2 rounded transition-colors"
+            },
+            'Напомнить позже'
+          )
+        )
+      )
+    ),
+
+  
+  // --- остальные экраны ---
+  profile && view === 'shop' && React.createElement(ShopView, {
+  upgrades: villageUpgrades,
+  onUpgrade: handleUpgrade,
+  currentGold: player.gold,
+  buildingTaskSlots: player.buildingTaskSlots || 0,
+  subscriptionTier: player.subscriptionTier,
+  onBuyBuilding: handleBuyBuilding,
+  onBack: () => goToView('village')
+}),
+
+profile && view === 'telegram_hub' && React.createElement(TelegramHubView, {
+  onBack: () => goToView('village')
+}),
+
+profile && view === 'balance_test' && React.createElement(BalanceTestView, {
+  profile: profile,
+  onComplete: (scores) => {
+    setProfile(prev => prev ? { ...prev, balanceTestCompleted: true, balanceScores: scores } : prev);
+    setShowBalanceTestPrompt(false);
+    goToView('balance_results');
+  },
+  onBack: () => {
+    setShowBalanceTestPrompt(false);
+    goToView('village');
+  }
+}),
+
+profile && view === 'balance_results' && React.createElement(BalanceResultsView, {
+  profile: profile,
+  onBack: () => goToView('village')
+}),
+
+  profile && view === 'inventory' && React.createElement(InventoryView, {
+    artifacts: artifacts,
+    equippedIds: player.equippedArtifactIds,
+    maxEquipSlots: calculateMaxEquipSlots(player),
+    onToggleEquip: handleToggleEquip,
+    onBack: () => goToView('village')
+  }),
+
+  profile && view === 'talents' && React.createElement(TalentTreeView, {
+    talentsData: TALENTS_DATA,
+    unlockedTalents: player.unlockedTalents,
+    currentGold: player.gold,
+    onUnlock: handleUnlockTalent,
+    onBack: () => goToView('village')
+  }),
+
+  profile && view === 'stats' && React.createElement(StatsView, {
+  stats: stats,
+  profile: profile,
+  subscriptionTier: player.subscriptionTier,
+  hasPremiumPass: player.hasPremiumPass,
+  onBack: () => goToView('village')
+}),
+
+  profile && view === 'profile_edit' && React.createElement(ProfileEditView, {
+  profile: profile,
+  playerGold: player.gold,
+  onSave: handleSaveProfileSettings,
+  onBack: () => goToView('village')
+}),
+
+  profile && view === 'roadmap' && React.createElement(RoadmapView, {
+    onBack: () => goToView('village')
+  }),
+  profile && view === 'premium' && React.createElement(PremiumView, {
+  onBack: () => goToView('village'),
+  hasPremiumPass: player.hasPremiumPass,
+  subscriptionTier: player.subscriptionTier,
+  onActivatePremium: handleActivatePremium,
+  onSetSubscriptionTier: handleSetSubscriptionTier,
+}),
+
+  React.createElement(MotivationFooter, { viewKey })
+),
+
+            showLevelUp && React.createElement('div', { className: "fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300" },
+              React.createElement('div', { className: "bg-[#1a202c] border-4 border-yellow-500 rounded-lg p-8 max-w-sm w-full text-center shadow-[0_0_50px_rgba(234,179,8,0.3)] relative overflow-hidden" },
+                 React.createElement('div', { className: "absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-400 to-transparent opacity-50" }),
+                 React.createElement(Trophy, { size: 64, className: "mx-auto text-yellow-500 mb-4 animate-bounce" }),
+                 React.createElement('h2', { className: "text-3xl font-bold text-white mb-2 font-mono" }, "НОВЫЙ УРОВЕНЬ!"),
+                 React.createElement('p', { className: "text-yellow-500 font-bold text-xl mb-6" }, `УРОВЕНЬ ${player.level}`),
+                 
+                 lastGainedArtifact && React.createElement('div', { className: "bg-gray-800 p-4 rounded mb-6 text-sm border-l-4 border-blue-500 text-left" },
+                    React.createElement('p', { className: "font-bold text-blue-400 flex items-center gap-2 mb-1" },
+                        React.createElement(Zap, { size: 16 }), " Найдена Награда:"
+                    ),
+                    React.createElement('p', { className: "text-2xl" }, `${lastGainedArtifact.visual} ${lastGainedArtifact.name}`),
+                    React.createElement('p', { className: "text-xs text-gray-400 mt-1" }, lastGainedArtifact.description)
+                 ),
+
+                 React.createElement(Button, { variant: "accent", onClick: () => setShowLevelUp(false), className: "w-full" }, "Продолжить Путь")
+              )
+            ),
+
+            showChallengeComplete && weeklyChallenge && React.createElement(
+              'div',
+              {
+                className: "fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300"
+              },
+              React.createElement(
+                'div',
+                {
+                  className: `bg-[#1a202c] border-4 ${
+                    weeklyChallenge.isClaimed ? 'border-emerald-500' : 'border-red-500'
+                  } rounded-lg p-8 max-w-sm w-full text-center shadow-[0_0_50px_rgba(239,68,68,0.3)] relative overflow-hidden`
+                },
+                React.createElement('div', {
+                  className: "absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-400 to-transparent opacity-50"
+                }),
+
+                React.createElement(Calendar, {
+                  size: 64,
+                  className: "mx-auto text-red-500 mb-4 animate-pulse"
+                }),
+                React.createElement(
+                  'h2',
+                  { className: "text-3xl font-bold text-white mb-2 font-mono" },
+                  weeklyChallenge.isCompleted ? "ИСПЫТАНИЕ ЗАВЕРШЕНО!" : "ЕЖЕНЕДЕЛЬНЫЙ БОСС"
+                ),
+                React.createElement(
+                  'p',
+                  { className: "text-lg font-bold mb-4" },
+                  weeklyChallenge.title
+                ),
+
+                React.createElement(
+                  'div',
+                  { className: "bg-gray-800 p-4 rounded mb-6 text-sm text-left" },
+                  React.createElement(
+                    'p',
+                    { className: "font-bold text-gray-300 mb-2" },
+                    `Прогресс: ${weeklyChallenge.currentProgress} / ${weeklyChallenge.requiredCompletions}`
+                  ),
+                  React.createElement(
+                    'div',
+                    { className: "h-2 bg-gray-900 rounded-full overflow-hidden" },
+                    React.createElement('div', {
+                      className: "h-full bg-red-600",
+                      style: {
+                        width: `${Math.min(
+                          100,
+                          (weeklyChallenge.currentProgress / weeklyChallenge.requiredCompletions) * 100
+                        )}%`
+                      }
+                    })
+                  ),
+                  React.createElement(
+                    'div',
+                    { className: "mt-4 pt-4 border-t border-gray-700" },
+                    React.createElement(
+                      'p',
+                      { className: "text-xs text-gray-500 mb-1" },
+                      "Награда за победу:"
+                    ),
+                    React.createElement(
+                      'p',
+                      {
+                        className: "font-bold text-emerald-400 flex items-center justify-center gap-4"
+                      },
+                      React.createElement('span', null, `+${weeklyChallenge.expReward} Общего EXP`),
+                      React.createElement('span', null, `${weeklyChallenge.goldReward} 🪙 Золота`)
+                    )
+                  )
+                ),
+
+                weeklyChallenge.isCompleted && !weeklyChallenge.isClaimed &&
+                  React.createElement(Button, {
+                    variant: "success",
+                    onClick: handleClaimChallenge,
+                    className: "w-full"
+                  }, "ПОЛУЧИТЬ НАГРАДУ"),
+
+                weeklyChallenge.isClaimed &&
+                  React.createElement(Button, {
+                    variant: "secondary",
+                    disabled: true,
+                    className: "w-full"
+                  }, "НАГРАДА ПОЛУЧЕНА!"),
+
+                !weeklyChallenge.isCompleted &&
+                  React.createElement(Button, {
+                    variant: "secondary",
+                    onClick: () => setShowChallengeComplete(false),
+                    className: "w-full"
+                  }, "ОК")
+              )
+            ),   // ← ВАЖНО: запятая тут остаётся — это ещё один ребёнок div-а
+
+            // === Message Toast ===
+            message && React.createElement(
+              'div',
+              {
+                className: "fixed bottom-4 right-4 z-50 animate-in slide-in-from-right-8 duration-300",
+                onClick: () => setMessage(null)
+              },
+              React.createElement(
+                'div',
+                {
+                  className:
+                    `p-4 rounded-lg shadow-xl max-w-xs cursor-pointer ` +
+                    (message.type === 'success'
+                      ? 'bg-emerald-600 border-emerald-400'
+                      : 'bg-red-600 border-red-400') +
+                    ' text-white border-b-4 flex items-center justify-between gap-4'
+                },
+                React.createElement(
+                  'p',
+                  { className: "font-bold text-sm" },
+                  message.text
+                ),
+                React.createElement(
+                  'button',
+                  { className: "text-white hover:opacity-75" },
+                  React.createElement(X, { size: 16 })
+                )
+              )
+            )
+            )  // ← только закрывающая скобка (без точки с запятой)
+
+        } // ← закрываем function App
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(App));
+    </script>
+  </body>
+</html>
