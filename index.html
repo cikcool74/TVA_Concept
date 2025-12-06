@@ -2725,63 +2725,122 @@ const handleActivatePremium = () => {
 
           return React.createElement('div', { className: "min-h-screen bg-[#0b0f1a] text-gray-200 font-mono selection:bg-yellow-500 selection:text-black" },
             
-            profile && React.createElement('header', { className: "sticky top-0 z-30 bg-[#0b0f1a]/90 backdrop-blur-sm border-b border-gray-800 p-3 shadow-md" },
-              React.createElement('div', { className: "max-w-md mx-auto flex items-center justify-between" },
-                React.createElement('div', { className: "flex items-center gap-2", onClick: () => goToView('village') },
-                  React.createElement('div', { className: "w-8 h-8 bg-yellow-600 rounded flex items-center justify-center border border-yellow-400 cursor-pointer" },
-                    React.createElement('span', { className: "text-xl" }, "🏰")
-                  ),
-                  React.createElement('div', { className: "leading-none" },
-                    React.createElement('h1', { className: "font-bold text-yellow-500 text-sm tracking-wider" }, "TVA"),
-                    React.createElement('span', { className: "text-[10px] text-gray-400" }, "TRADING VILLAGE ACADEMY")
-                  )
-                ),
+            profile && React.createElement(
+  'header',
+  { className: "sticky top-0 z-30 bg-[#0b0f1a]/90 backdrop-blur-sm border-b border-gray-800 p-3 shadow-md" },
+  React.createElement(
+    'div',
+    { className: "max-w-md mx-auto flex items-center justify-between gap-2" },
 
-                React.createElement('div', { className: "flex items-center gap-3" },
-                   weeklyChallenge && React.createElement('button', 
-                      {
-                        onClick: () => setShowChallengeComplete(true),
-                        className: `p-1.5 rounded transition-all border ${weeklyChallenge.isCompleted && !weeklyChallenge.isClaimed ? 'bg-red-700 border-red-400 animate-pulse' : 'bg-gray-800 border-gray-700'}`
-                      },
-                     React.createElement(Calendar, { size: 18, className: weeklyChallenge.isCompleted && !weeklyChallenge.isClaimed ? 'text-white' : 'text-gray-400' })
-                   ),
+    // ЛЕВАЯ ЧАСТЬ — ЛОГО + НАЗВАНИЕ
+    React.createElement(
+      'div',
+      { className: "flex items-center gap-2 min-w-0 cursor-pointer", onClick: () => goToView('village') },
+      React.createElement(
+        'div',
+        { className: "w-8 h-8 bg-yellow-600 rounded flex items-center justify-center border border-yellow-400" },
+        React.createElement('span', { className: "text-xl" }, "🏰")
+      ),
+      React.createElement(
+        'div',
+        { className: "leading-none overflow-hidden" },
+        React.createElement(
+          'h1',
+          { className: "font-bold text-yellow-500 text-sm tracking-wider" },
+          "TVA"
+        ),
+        // 🔹 Подзаголовок скрыт на очень маленьких экранах
+        React.createElement(
+          'span',
+          { className: "hidden sm:block text-[10px] text-gray-400 truncate max-w-[160px]" },
+          "TRADING VILLAGE ACADEMY"
+        )
+      )
+    ),
 
-                   React.createElement('div', { className: "flex -space-x-1" },
-                     Array.from({ length: 3 }).map((_, index) => 
-                        React.createElement('div', {
-                            key: index, 
-                            className: `w-5 h-5 rounded-full flex items-center justify-center text-xs border-2 ${
-                                equippedArtifacts[index] 
-                                    ? 'bg-yellow-800 border-yellow-500 shadow-lg' 
-                                    : 'bg-gray-800 border-gray-700 opacity-50'
-                            }`,
-                            onClick: () => { setSelectedLocation(null); setView('inventory'); }
-                        }, equippedArtifacts[index] ? equippedArtifacts[index].visual : '—')
-                     )
-                   ),
+    // ПРАВАЯ ЧАСТЬ — календарь, артефакты, золото, уровень, роадмап
+    React.createElement(
+      'div',
+      { className: "flex items-center gap-2 shrink-0" },
 
-                   React.createElement('div', { className: "flex items-center gap-1 bg-gray-800 p-1.5 rounded-full text-yellow-400 border border-gray-700" },
-                       React.createElement(Gem, { size: 14, className: "text-yellow-500" }),
-                       React.createElement('span', { className: "text-xs font-bold mr-1" }, player.gold)
-                   ),
+      weeklyChallenge && React.createElement(
+        'button',
+        {
+          onClick: () => setShowChallengeComplete(true),
+          className: `p-1.5 rounded transition-all border ${
+            weeklyChallenge.isCompleted && !weeklyChallenge.isClaimed
+              ? 'bg-red-700 border-red-400 animate-pulse'
+              : 'bg-gray-800 border-gray-700'
+          }`
+        },
+        React.createElement(Calendar, {
+          size: 18,
+          className:
+            weeklyChallenge.isCompleted && !weeklyChallenge.isClaimed
+              ? 'text-white'
+              : 'text-gray-400'
+        })
+      ),
 
-                   React.createElement('div', { className: "text-right" },
-                      React.createElement('div', { className: "text-xs text-yellow-500 font-bold" }, `УР ${player.level}`),
-                      React.createElement('div', { className: "w-24" },
-                        React.createElement(ProgressBar, { current: player.currentExp, max: player.expToNextLevel })
-                      )
-                   ),
-                   React.createElement(
-  'button',
-  {
-    onClick: () => goToView('roadmap'),
-    className: "p-2 hover:bg-gray-800 rounded transition-colors"
-  },
-  React.createElement(FileText, { size: 20, className: "text-gray-400" })
-)
-                )
-              )
-            ),
+      React.createElement(
+        'div',
+        { className: "flex -space-x-1" },
+        Array.from({ length: 3 }).map((_, index) =>
+          React.createElement(
+            'div',
+            {
+              key: index,
+              className: `w-5 h-5 rounded-full flex items-center justify-center text-xs border-2 ${
+                equippedArtifacts[index]
+                  ? 'bg-yellow-800 border-yellow-500 shadow-lg'
+                  : 'bg-gray-800 border-gray-700 opacity-50'
+              }`,
+              onClick: () => {
+                setSelectedLocation(null);
+                setView('inventory');
+              }
+            },
+            equippedArtifacts[index] ? equippedArtifacts[index].visual : '—'
+          )
+        )
+      ),
+
+      React.createElement(
+        'div',
+        { className: "flex items-center gap-1 bg-gray-800 p-1.5 rounded-full text-yellow-400 border border-gray-700" },
+        React.createElement(Gem, { size: 14, className: "text-yellow-500" }),
+        React.createElement('span', { className: "text-xs font-bold mr-1" }, player.gold)
+      ),
+
+      React.createElement(
+        'div',
+        { className: "text-right" },
+        React.createElement(
+          'div',
+          { className: "text-xs text-yellow-500 font-bold" },
+          `УР ${player.level}`
+        ),
+        React.createElement(
+          'div',
+          { className: "w-24" },
+          React.createElement(ProgressBar, {
+            current: player.currentExp,
+            max: player.expToNextLevel
+          })
+        )
+      ),
+
+      React.createElement(
+        'button',
+        {
+          onClick: () => goToView('roadmap'),
+          className: "p-2 hover:bg-gray-800 rounded transition-colors"
+        },
+        React.createElement(FileText, { size: 20, className: "text-gray-400" })
+      )
+    )
+  )
+),
 
             React.createElement('main',{ className: "max-w-md mx-auto p-4 pb-24" },
 
