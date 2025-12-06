@@ -2034,14 +2034,31 @@ const TelegramHubView = ({ onBack }) => {
           const [response, setResponse] = useState(null);
           const [apiKey, setApiKey] = useState(localStorage.getItem('tva_gemini_key') || '');
           const [userQuery, setUserQuery] = useState('');
+          const [provider, setProvider] = useState(localStorage.getItem('tva_ai_provider') || 'ollama');
+          const [ollamaHost, setOllamaHost] = useState(localStorage.getItem('tva_ollama_host') || 'http://localhost:11434');
 
           const saveKey = (val) => {
             setApiKey(val);
             localStorage.setItem('tva_gemini_key', val);
           };
 
+          const saveProvider = (val) => {
+            setProvider(val);
+            localStorage.setItem('tva_ai_provider', val);
+          };
+
+          const saveHost = (val) => {
+            setOllamaHost(val);
+            localStorage.setItem('tva_ollama_host', val);
+          };
+
           const askOracle = async () => {
-            if (!apiKey) {
+            if (provider === 'ollama' && !ollamaHost) {
+              setResponse("Укажи адрес Ollama сервера, например http://localhost:11434");
+              return;
+            }
+
+            if (provider === 'gemini' && !apiKey) {
               setResponse("Сначала введи ключ API (получи его в Google AI Studio).");
               return;
             }
@@ -2050,12 +2067,8 @@ const TelegramHubView = ({ onBack }) => {
             setResponse(null);
 
             try {
-              const genAI = new GoogleGenerativeAI(apiKey);
-              const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-              // Формируем контекст для ИИ
-              const context = `
-                Ты — "Великий Оракул Трейдинга" в игре Trading Village Academy. 
+              const prompt = `
+                Ты - "Великий Оракул Трейдинга" в игре Trading Village Academy. 
                 Твой тон: мудрый, немного мистический, но строгий, как у старого мастера кунг-фу.
                 
                 Данные игрока:
@@ -2073,12 +2086,45 @@ const TelegramHubView = ({ onBack }) => {
                 Задача: Дай короткий (максимум 3-4 предложения) совет по дисциплине, психологии трейдинга или режиму дня, основываясь на данных. Используй метафоры деревни, строительства и прокачки.
               `;
 
-              const result = await model.generateContent(context);
+              if (provider === 'ollama') {
+                const endpoint = `${ollamaHost.replace(/\/$/, '')}/api/generate`;
+                const res = await fetch(endpoint, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    model: 'llama3:8b',
+                    prompt,
+                    stream: false,
+                    options: {
+                      temperature: 0.7
+                    }
+                  })
+                });
+
+                if (!res.ok) {
+                  throw new Error(`Ollama ответил: ${res.status} ${res.statusText}`);
+                }
+
+                const data = await res.json();
+                const text = (data.response || data.message || '').trim();
+
+                if (!text) {
+                  throw new Error('Пустой ответ от модели');
+                }
+
+                setResponse(text);
+                return;
+              }
+
+              const genAI = new GoogleGenerativeAI(apiKey);
+              const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+              const result = await model.generateContent(prompt);
               const text = result.response.text();
               setResponse(text);
             } catch (error) {
               console.error(error);
-              setResponse("Оракул сейчас в тумане... Проверь API Key или интернет. (Ошибка: " + error.message + ")");
+              setResponse("Оракул сейчас в тумане... Проверь API/хост или интернет. (Ошибка: " + error.message + ")");
             } finally {
               setLoading(false);
             }
@@ -2099,32 +2145,77 @@ const TelegramHubView = ({ onBack }) => {
 
               <PixelCard className="bg-gray-900/80 border-pink-500/30">
                 <p className="text-xs text-gray-400 mb-4">
-                  Оракул видит твой путь через нейронные сети Gemini. Задай вопрос или попроси наставления.
+                  Оракул видит твой путь через выбранную ИИ-модель. Задай вопрос или попроси наставления.
                 </p>
 
-                {/* Поле для API Key */}
-                <div className="mb-4">
-                  <label className="text-[10px] uppercase text-gray-600 font-bold">
-                    Google Gemini API Key
-                  </label>
-                  <input
-                    type="password"
-                    value={apiKey}
-                    onChange={(e) => saveKey(e.target.value)}
-                    placeholder="Вставь ключ сюда..."
-                    className="w-full bg-black border border-gray-700 text-xs text-white p-2 rounded focus:border-pink-500 outline-none"
-                  />
-                  <a
-                    href="https://aistudio.google.com/app/apikey"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-[10px] text-blue-400 underline mt-1 block"
+                <div className="grid grid-cols-2 gap-2 mb-4">
+                  <button
+                    onClick={() => saveProvider('ollama')}
+                    className={`text-xs font-bold uppercase py-2 rounded border ${
+                      provider === 'ollama'
+                        ? 'bg-pink-700 border-pink-400 text-white'
+                        : 'bg-gray-800 border-gray-700 text-gray-300'
+                    }`}
                   >
-                    Получить ключ бесплатно
-                  </a>
+                    Бесплатно (Ollama)
+                  </button>
+                  <button
+                    onClick={() => saveProvider('gemini')}
+                    className={`text-xs font-bold uppercase py-2 rounded border ${
+                      provider === 'gemini'
+                        ? 'bg-pink-700 border-pink-400 text-white'
+                        : 'bg-gray-800 border-gray-700 text-gray-300'
+                    }`}
+                  >
+                    Gemini API
+                  </button>
                 </div>
 
-                {/* Поле вопроса */}
+                <p className="text-[10px] text-gray-500 mb-3">
+                  Ollama — локальная бесплатная модель (например, llama3:8b). Для Telegram нужен доступный внешний хост или прокси.
+                </p>
+
+                {provider === 'ollama' && (
+                  <div className="mb-4">
+                    <label className="text-[10px] uppercase text-gray-600 font-bold">
+                      Адрес Ollama / прокси
+                    </label>
+                    <input
+                      type="text"
+                      value={ollamaHost}
+                      onChange={(e) => saveHost(e.target.value)}
+                      placeholder="http://localhost:11434"
+                      className="w-full bg-black border border-gray-700 text-xs text-white p-2 rounded focus:border-pink-500 outline-none"
+                    />
+                    <p className="text-[10px] text-gray-500 mt-1">
+                      Запусти: ollama run llama3:8b. Убедись, что порт 11434 доступен (или укажи свой URL).
+                    </p>
+                  </div>
+                )}
+
+                {provider === 'gemini' && (
+                  <div className="mb-4">
+                    <label className="text-[10px] uppercase text-gray-600 font-bold">
+                      Google Gemini API Key
+                    </label>
+                    <input
+                      type="password"
+                      value={apiKey}
+                      onChange={(e) => saveKey(e.target.value)}
+                      placeholder="Вставь ключ сюда..."
+                      className="w-full bg-black border border-gray-700 text-xs text-white p-2 rounded focus:border-pink-500 outline-none"
+                    />
+                    <a
+                      href="https://aistudio.google.com/app/apikey"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[10px] text-blue-400 underline mt-1 block"
+                    >
+                      Получить ключ бесплатно
+                    </a>
+                  </div>
+                )}
+
                 <div className="mb-4">
                   <label className="text-[10px] uppercase text-gray-500 font-bold">
                     Твой вопрос (необязательно)
@@ -2140,19 +2231,22 @@ const TelegramHubView = ({ onBack }) => {
                 <Button
                   onClick={askOracle}
                   variant="primary"
-                  disabled={loading || !apiKey}
+                  disabled={
+                    loading ||
+                    (provider === 'gemini' && !apiKey) ||
+                    (provider === 'ollama' && !ollamaHost)
+                  }
                   className="w-full py-3 bg-pink-700 hover:bg-pink-600 border-pink-900"
                 >
-                  {loading ? "ОРАКУЛ ДУМАЕТ..." : "ПОЛУЧИТЬ ПРЕДСКАЗАНИЕ ✨"}
+                  {loading ? "ОРАКУЛ ДУМАЕТ..." : "ПОЛУЧИТЬ ПРЕДСКАЗАНИЕ ?"}
                 </Button>
               </PixelCard>
 
-              {/* Ответ */}
               {response && (
                 <div className="animate-in fade-in duration-500">
                   <PixelCard className="border-pink-500 bg-pink-900/10">
                     <div className="flex items-start gap-3">
-                      <div className="text-2xl">🔮</div>
+                      <div className="text-2xl">??</div>
                       <div>
                         <h3 className="text-sm font-bold text-pink-400 mb-1">Голос Бездны:</h3>
                         <p className="text-sm text-gray-200 leading-relaxed italic">
