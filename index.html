@@ -2727,18 +2727,27 @@ const handleActivatePremium = () => {
             
             profile && React.createElement(
   'header',
-  { className: "sticky top-0 z-30 bg-[#0b0f1a]/90 backdrop-blur-sm border-b border-gray-800 p-3 shadow-md" },
+  {
+    className:
+      "sticky top-0 z-30 bg-[#0b0f1a]/90 backdrop-blur-sm border-b border-gray-800 p-3 shadow-md"
+  },
   React.createElement(
     'div',
-    { className: "max-w-md mx-auto flex items-center justify-between gap-2" },
+    { className: "max-w-md mx-auto w-full flex flex-col gap-2" },
 
-    // ЛЕВАЯ ЧАСТЬ — ЛОГО + НАЗВАНИЕ
+    // 🔹 Ряд 1 — Лого + TVA
     React.createElement(
       'div',
-      { className: "flex items-center gap-2 min-w-0 cursor-pointer", onClick: () => goToView('village') },
+      {
+        className: "flex items-center gap-2 min-w-0 cursor-pointer",
+        onClick: () => goToView('village')
+      },
       React.createElement(
         'div',
-        { className: "w-8 h-8 bg-yellow-600 rounded flex items-center justify-center border border-yellow-400" },
+        {
+          className:
+            "w-8 h-8 bg-yellow-600 rounded flex items-center justify-center border border-yellow-400 flex-shrink-0"
+        },
         React.createElement('span', { className: "text-xl" }, "🏰")
       ),
       React.createElement(
@@ -2749,20 +2758,26 @@ const handleActivatePremium = () => {
           { className: "font-bold text-yellow-500 text-sm tracking-wider" },
           "TVA"
         ),
-        // 🔹 Подзаголовок скрыт на очень маленьких экранах
         React.createElement(
           'span',
-          { className: "hidden sm:block text-[10px] text-gray-400 truncate max-w-[160px]" },
+          {
+            className:
+              "hidden sm:block text-[10px] text-gray-400 truncate max-w-[180px]"
+          },
           "TRADING VILLAGE ACADEMY"
         )
       )
     ),
 
-    // ПРАВАЯ ЧАСТЬ — календарь, артефакты, золото, уровень, роадмап
+    // 🔹 Ряд 2 — статус / ресурсы / уровень / роадмап
     React.createElement(
       'div',
-      { className: "flex items-center gap-2 shrink-0" },
+      {
+        className:
+          "flex items-center justify-between gap-2 flex-wrap"
+      },
 
+      // Календарь (можно скрыть совсем на сверх-узких, если захочешь)
       weeklyChallenge && React.createElement(
         'button',
         {
@@ -2782,6 +2797,7 @@ const handleActivatePremium = () => {
         })
       ),
 
+      // Артефакты
       React.createElement(
         'div',
         { className: "flex -space-x-1" },
@@ -2805,13 +2821,22 @@ const handleActivatePremium = () => {
         )
       ),
 
+      // Золото
       React.createElement(
         'div',
-        { className: "flex items-center gap-1 bg-gray-800 p-1.5 rounded-full text-yellow-400 border border-gray-700" },
+        {
+          className:
+            "flex items-center gap-1 bg-gray-800 px-2 py-1 rounded-full text-yellow-400 border border-gray-700"
+        },
         React.createElement(Gem, { size: 14, className: "text-yellow-500" }),
-        React.createElement('span', { className: "text-xs font-bold mr-1" }, player.gold)
+        React.createElement(
+          'span',
+          { className: "text-xs font-bold" },
+          player.gold
+        )
       ),
 
+      // Уровень + EXP
       React.createElement(
         'div',
         { className: "text-right" },
@@ -2830,6 +2855,7 @@ const handleActivatePremium = () => {
         )
       ),
 
+      // Кнопка Roadmap
       React.createElement(
         'button',
         {
